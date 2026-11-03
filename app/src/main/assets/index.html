@@ -32,7 +32,8 @@ button:active{background:#0a5225}button:disabled{opacity:.45}.check{display:flex
 <h3>&gt; HTTP_SECURITY_HEADERS</h3><div id="headers"></div>
 <h3>&gt; STATIC_HTML_INSPECTION</h3><div id="page"></div>
 <h3>&gt; COOKIE_AUDIT</h3><div id="cookies"></div>
-<h3>&gt; REDIRECT_ANALYSIS</h3><div id="redirect"></div>\n<h3>&gt; AUTHORIZED_SITE_CRAWL</h3><div id="crawl"></div>
+<h3>&gt; REDIRECT_ANALYSIS</h3><div id="redirect"></div>
+<h3>&gt; AUTHORIZED_SITE_CRAWL</h3><div id="crawl"></div>
 <h3>&gt; FINDINGS</h3><div id="findings"></div>
 <div class="actions"><button onclick="downloadReport()">[ EXPORT JSON ]</button><button class="secondary" onclick="copyReport()">[ COPY REPORT ]</button></div>
 <p class="muted" id="disclaimer"></p>
@@ -51,7 +52,8 @@ Object.entries(d.tls).forEach(([k,v])=>item(el('tls'),k,Array.isArray(v)?v.join(
 if(d.pageAnalysis)Object.entries(d.pageAnalysis).forEach(([k,v])=>item(el('page'),k,v));
 if(!d.cookies.length)item(el('cookies'),'No Set-Cookie headers','No cookies were observed in this response.','INFO');d.cookies.forEach(c=>item(el('cookies'),c.name,'Secure='+c.secure+' // HttpOnly='+c.httpOnly+' // SameSite='+c.sameSite,(!c.secure||!c.httpOnly||!c.sameSite)?'MEDIUM':'LOW'));
 if(d.redirect&&d.redirect!=='null')item(el('redirect'),'Redirect destination',JSON.stringify(d.redirect),'INFO');else item(el('redirect'),'No redirect destination','No Location header was observed.','INFO');
-if(d.siteCrawl){item(el('crawl'),'Pages visited',d.siteCrawl.pagesVisitedIncludingStart+' total // maximum '+(d.siteCrawl.maxAdditionalPages+1),'INFO');(d.siteCrawl.additionalPages||[]).forEach(p=>item(el('crawl'),p.target,'HTTP '+p.status+' // '+JSON.stringify(p.severityCounts||{})+(p.error?' // '+p.error:''),p.ok?'INFO':'MEDIUM'));item(el('crawl'),'Crawl policy',d.siteCrawl.note,'INFO')}else item(el('crawl'),'Single page mode','No site crawl data was returned.','INFO');\nif(!d.findings.length)item(el('findings'),'No findings in tested checks','This does not prove that the site is vulnerability-free.','INFO');d.findings.forEach(f=>item(el('findings'),'['+f.severity+'] '+f.title,f.detail+' // Score deduction: '+f.deduction,f.severity));
+if(d.siteCrawl){item(el('crawl'),'Pages visited',d.siteCrawl.pagesVisitedIncludingStart+' total // maximum '+(d.siteCrawl.maxAdditionalPages+1),'INFO');(d.siteCrawl.additionalPages||[]).forEach(p=>item(el('crawl'),p.target,'HTTP '+p.status+' // '+JSON.stringify(p.severityCounts||{})+(p.error?' // '+p.error:''),p.ok?'INFO':'MEDIUM'));item(el('crawl'),'Crawl policy',d.siteCrawl.note,'INFO')}else item(el('crawl'),'Single page mode','No site crawl data was returned.','INFO');
+if(!d.findings.length)item(el('findings'),'No findings in tested checks','This does not prove that the site is vulnerability-free.','INFO');d.findings.forEach(f=>item(el('findings'),'['+f.severity+'] '+f.title,f.detail+' // Score deduction: '+f.deduction,f.severity));
 el('disclaimer').textContent=d.scoreDisclaimer+' '+d.scopeNote};
 function downloadReport(){if(!report)return;const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-x-ultra-audit.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function copyReport(){if(report&&navigator.clipboard)navigator.clipboard.writeText(JSON.stringify(report,null,2))}
