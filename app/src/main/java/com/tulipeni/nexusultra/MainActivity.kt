@@ -37,8 +37,19 @@ class MainActivity : Activity() {
     inner class Bridge {
         @JavascriptInterface
         fun scan(raw: String) {
-            thread(name = "nexus-scan") {
-                val payload = try { scanTarget(raw) } catch (e: Exception) {
+            runAudit(raw, false)
+        }
+
+        @JavascriptInterface
+        fun scanSite(raw: String) {
+            runAudit(raw, true)
+        }
+
+        private fun runAudit(raw: String, crawl: Boolean) {
+            thread(name = "nexus-authorized-audit") {
+                val payload = try {
+                    if (crawl) scanSiteScope(raw) else scanTarget(raw)
+                } catch (e: Exception) {
                     JSONObject().put("ok", false).put("error", e.message ?: "تعذر تنفيذ الفحص")
                 }
                 runOnUiThread {
@@ -177,6 +188,51 @@ class MainActivity : Activity() {
                 val unsandboxedIframes = Regex("""<iframe\b[^>]*>""", RegexOption.IGNORE_CASE).findAll(body)
                     .count { !Regex("""\bsandbox\b""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }
                 val sourceMapReferences = Regex("""(?i)sourceMappingURL=|\.map(?:["'\s?]|$)""").findAll(body).count()
+                val discoveredLinks = JSONArray()
+                if (isHtml) {
+                    Regex("""(?i)\b(?:href|src)\s*=\s*["']([^"'#]+)["']""").findAll(body).forEach { match ->
+                        try {
+                            val resolved = URL(target, match.groupValues[1])
+                            if (resolved.protocol.equals("https", true) &&
+                                resolved.host.equals(host, true) &&
+                                (resolved.port == -1 || resolved.port == 443) &&
+                                resolved.query == null &&
+                                !resolved.path.contains(Regex("""(?i)/(logout|signout|delete|remove|unsubscribe|purchase|checkout)(?:/|$)""")) &&
+                                discoveredLinks.length() < 80) {
+                                val clean = URL("https", host, 443, resolved.path.ifBlank { "/" }).toString()
+                                if ((0 until discoveredLinks.length()).none { discoveredLinks.optString(it) == clean })
+                                    discoveredLinks.put(clean)
+                            }
+                        } catch (_: Exception) { }
+                    }
+                }
+                if (isXml && target.path.endsWith("sitemap.xml", true)) {
+                    Regex("""(?is)<loc>\s*(https://[^<]+)\s*</loc>""").findAll(body).forEach { match ->
+                        try {
+                            val resolved = URL(match.groupValues[1].trim())
+                            if (resolved.host.equals(host, true) && (resolved.port == -1 || resolved.port == 443) &&
+                                resolved.query == null && discoveredLinks.length() < 80)
+                                discoveredLinks.put(URL("https", host, 443, resolved.path.ifBlank { "/" }).toString())
+                        } catch (_: Exception) { }
+                    }
+                }
+                if (target.path.endsWith("robots.txt", true)) {
+                    Regex("""(?im)^Sitemap:\s*(https://\S+)""").findAll(body).forEach { match ->
+                        try {
+                            val resolved = URL(match.groupValues[1].trim())
+                            if (resolved.host.equals(host, true) && resolved.path.endsWith("sitemap.xml", true) &&
+                                (resolved.port == -1 || resolved.port == 443) && discoveredLinks.length() < 80)
+                                discoveredLinks.put(URL("https", host, 443, resolved.path).toString())
+                        } catch (_: Exception) { }
+                    }
+                    Regex("""(?im)^Disallow:\s*(/[^\s*]*)""").findAll(body).forEach { match ->
+                        try {
+                            val path = match.groupValues[1]
+                            if (!path.contains("..") && !path.contains("?") && discoveredLinks.length() < 80)
+                                discoveredLinks.put(URL("https", host, 443, path).toString())
+                        } catch (_: Exception) { }
+                    }
+                }
                 val inlineScripts = Regex("""<script\b(?![^>]*\bsrc\s*=)[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).count()
                 val sqlErrorPatterns = listOf(
                     Regex("""(?i)\bSQL syntax.*MySQL|mysql_fetch_|mysqli?_\w+\(.*\):"""),
@@ -211,6 +267,7 @@ class MainActivity : Activity() {
                     .put("linksTargetBlankWithoutNoopener", unsafeBlankLinks)
                     .put("iframesWithoutSandbox", unsandboxedIframes)
                     .put("sourceMapReferences", sourceMapReferences)
+                    .put("discoveredLinks", discoveredLinks)
                     .put("httpResourceReferences", insecureRefs)
                 if (insecureRefs > 0) add("MEDIUM", "موارد HTTP داخل صفحة HTTPS", "تم رصد $insecureRefs مرجعاً يستخدم HTTP داخل عينة HTML؛ تحقق من mixed content.", 5)
                 if (insecurePasswordForms > 0) add("HIGH", "نموذج كلمة مرور يرسل إلى HTTP", "تم رصد نموذج كلمة مرور يحدد action عبر HTTP؛ راجع مسار الإرسال فوراً.", 12)
@@ -318,7 +375,7 @@ class MainActivity : Activity() {
                 counts.put(sev.lowercase(), (0 until findings.length()).count { findings.getJSONObject(it).optString("severity") == sev })
             }
             val score = (100 - deductions.coerceAtMost(100)).coerceAtLeast(0)
-            return JSONObject().put("ok", true).put("engineVersion", "4.2")
+            return JSONObject().put("ok", true).put("engineVersion", "5.0")
                 .put("target", target.toString()).put("timestamp", System.currentTimeMillis())
                 .put("status", status).put("contentType", contentType.ifBlank { "Unavailable" })
                 .put("serverHeader", server ?: "Not disclosed").put("dns", dns)
@@ -330,6 +387,51 @@ class MainActivity : Activity() {
         } finally {
             conn.disconnect()
         }
+    }
+
+    private fun scanSiteScope(raw: String): JSONObject {
+        val base = scanTarget(raw)
+        val baseUrl = URL(base.optString("target"))
+        val host = baseUrl.host.lowercase()
+        val queue = ArrayDeque<String>()
+        val seen = linkedSetOf(baseUrl.toString())
+        val pages = JSONArray()
+        val baseLinks = base.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
+        if (baseLinks != null) for (i in 0 until baseLinks.length()) queue.add(baseLinks.optString(i))
+        queue.add(URL(baseUrl, "/robots.txt").toString())
+        queue.add(URL(baseUrl, "/sitemap.xml").toString())
+        while (queue.isNotEmpty() && pages.length() < 11) {
+            val next = queue.removeFirst()
+            if (!seen.add(next)) continue
+            val u = try { URL(next) } catch (_: Exception) { continue }
+            if (!u.protocol.equals("https", true) || !u.host.equals(host, true) ||
+                (u.port != -1 && u.port != 443) || u.query != null || u.userInfo != null) continue
+            val result = try { scanTarget(next) } catch (e: Exception) {
+                JSONObject().put("ok", false).put("target", next).put("error", e.message ?: "تعذر فحص الصفحة")
+            }
+            pages.put(JSONObject().put("target", next)
+                .put("ok", result.optBoolean("ok"))
+                .put("status", result.optInt("status", -1))
+                .put("contentType", result.optString("contentType", ""))
+                .put("severityCounts", result.optJSONObject("severityCounts") ?: JSONObject())
+                .put("findings", result.optJSONArray("findings") ?: JSONArray())
+                .put("error", result.optString("error", "")))
+            val links = result.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
+            if (links != null) for (i in 0 until links.length()) {
+                val link = links.optString(i)
+                if (link.isNotBlank() && link !in seen && queue.size < 100) queue.add(link)
+            }
+        }
+        val crawl = JSONObject()
+            .put("mode", "bounded_same_origin_get_only")
+            .put("pagesVisitedIncludingStart", pages.length() + 1)
+            .put("additionalPages", pages)
+            .put("maxAdditionalPages", 11)
+            .put("note", "تم اتباع روابط HTTPS الداخلية فقط وطلبات GET محدودة. لم يتم إرسال نماذج أو تخمين مسارات أو تنفيذ استغلال.")
+        base.put("siteCrawl", crawl)
+        base.put("engineVersion", "5.0")
+        base.put("scopeNote", "تدقيق محدود متعدد الصفحات ضمن نفس النطاق، بحد أقصى 12 صفحة وطلبات GET فقط. لا ينفذ brute force أو استغلالاً أو إرسال نماذج أو تخمين مسارات.")
+        return base
     }
 
     private fun readBounded(input: java.io.InputStream, maxBytes: Int): String {
