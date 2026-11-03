@@ -2,67 +2,55 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#080d18"><title>NEXUS X ULTRA</title>
+<meta name="theme-color" content="#020704"><title>NEXUS X ULTRA</title>
 <style>
-:root{color-scheme:dark;--bg:#080d18;--panel:#111b2d;--line:#263750;--green:#00e5a0;--muted:#91a1b9;--red:#ff6577;--amber:#ffc66d}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#14243b,var(--bg) 55%);color:#edf4ff;font-family:Arial,sans-serif;padding:18px}
-main{max-width:900px;margin:auto}.hero{text-align:center;padding:30px 0 20px}.hero h1{color:var(--green);font-size:30px;letter-spacing:2px;margin:0}.hero p,.muted{color:var(--muted);line-height:1.7}
-.card{background:rgba(17,27,45,.96);border:1px solid var(--line);border-radius:16px;padding:19px;margin:14px 0;box-shadow:0 12px 30px #0003}
-input{width:100%;padding:15px;border-radius:9px;border:1px solid #354862;background:#080d18;color:white;direction:ltr;font-size:16px;margin:12px 0}
-button{border:0;border-radius:9px;background:var(--green);color:#06130f;font-weight:bold;padding:14px 18px;font-size:15px;cursor:pointer}
-button:disabled{opacity:.5}.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.6;margin:12px 0}
-.check input{width:auto;margin:3px 0}.meter{height:8px;background:#263750;border-radius:9px;margin-top:16px;overflow:hidden}.bar{height:100%;width:0;background:var(--green);transition:.3s}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{background:#080d18;border:1px solid var(--line);border-radius:11px;padding:13px}.tile b{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.tile span{overflow-wrap:anywhere}
-.score{font-size:44px;font-weight:bold;color:var(--green)}.item{background:#080d18;border-right:3px solid var(--green);padding:13px;border-radius:8px;margin:9px 0;overflow-wrap:anywhere}.item p{color:var(--muted);line-height:1.6;margin:6px 0 0}.HIGH{border-color:var(--red)}.MEDIUM{border-color:var(--amber)}.LOW{border-color:#8da4c3}
-.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.actions button{flex:1;min-width:130px}.secondary{background:#243750;color:#edf4ff}
-@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:24px}}
+:root{color-scheme:dark;--bg:#020704;--panel:#07120b;--line:#124322;--green:#00ff66;--dim:#00a83f;--text:#c7ffd8;--muted:#72a987;--red:#ff4057;--amber:#ffd34e}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#06200e 0%,#020704 58%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;padding:16px}
+main{max-width:920px;margin:auto}.hero{text-align:center;padding:25px 0 20px}.hero h1{color:var(--green);font-size:29px;letter-spacing:3px;text-shadow:0 0 15px #00ff6680;margin:0}.hero p,.muted{color:var(--muted);line-height:1.7}
+.card{background:linear-gradient(145deg,#07150b,#030a05);border:1px solid var(--line);border-radius:8px;padding:18px;margin:13px 0;box-shadow:0 0 22px #00ff660d,inset 0 0 25px #00ff6605}
+h3{color:var(--green);letter-spacing:1px}input[type=url]{width:100%;padding:15px;border-radius:5px;border:1px solid #176a32;background:#010402;color:var(--green);direction:ltr;font:15px ui-monospace,monospace;margin:12px 0;outline:none}
+input:focus{box-shadow:0 0 0 2px #00ff6630}button{border:1px solid var(--green);border-radius:4px;background:#063516;color:var(--green);font:bold 14px ui-monospace,monospace;padding:14px 18px;cursor:pointer;text-shadow:0 0 8px #00ff6680}
+button:active{background:#0a5225}button:disabled{opacity:.45}.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:12px;line-height:1.7;margin:12px 0}.check input{margin:4px 0;accent-color:var(--green)}
+.meter{height:7px;background:#102516;border:1px solid #174b29;margin-top:16px}.bar{height:100%;width:0;background:var(--green);box-shadow:0 0 12px var(--green);transition:.3s}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tile{background:#020805;border:1px solid #103b20;border-radius:4px;padding:12px;min-width:0}.tile b{display:block;color:var(--dim);font-size:11px;margin-bottom:7px}.tile span{color:var(--text);overflow-wrap:anywhere;font-size:12px}
+.score{font-size:42px;font-weight:bold;color:var(--green);text-shadow:0 0 14px #00ff6680;align-self:center}.item{background:#020805;border:1px solid #103b20;border-right:3px solid var(--green);padding:12px;border-radius:3px;margin:8px 0;overflow-wrap:anywhere}.item p{color:var(--muted);font:12px/1.7 Arial,sans-serif;margin:6px 0 0}.HIGH,.CRITICAL{border-right-color:var(--red)}.MEDIUM{border-right-color:var(--amber)}.LOW{border-right-color:#8dbb9b}.INFO{border-right-color:#358bff}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.actions button{flex:1;min-width:130px}.secondary{background:#07150b;border-color:#176a32;color:var(--text)}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:23px}}
 </style></head>
 <body><main>
-<header class="hero"><h1>⚡ NEXUS X ULTRA</h1><p>Android Web Security Assessment Suite<br>محرك فحص إعدادات أمان المواقع</p></header>
+<header class="hero"><h1>[ NEXUS X ULTRA ]</h1><p>PASSIVE WEB SECURITY AUDIT // ANDROID<br>محرك مراجعة إعدادات أمان المواقع</p></header>
 <section class="card">
-<h3>🎯 الهدف</h3>
+<h3>&gt; TARGET_CONFIGURATION</h3>
 <input id="target" type="url" placeholder="https://example.com" autocomplete="url">
-<label class="check"><input id="authorized" type="checkbox"><span>أؤكد أنني أملك هذا الموقع أو لدي تصريح صريح بفحصه.</span></label>
-<button id="scan" style="width:100%" onclick="startScan()">بدء الفحص</button>
-<div class="meter"><div class="bar" id="bar"></div></div><p class="muted" id="status">جاهز — يفحص عنوان HTTPS واحداً دون استغلال أو تخمين مسارات.</p>
+<label class="check"><input id="authorized" type="checkbox"><span>أؤكد أنني أملك النطاق أو لدي تصريح صريح بإجراء الفحص.</span></label>
+<button id="scan" style="width:100%" onclick="startScan()">[ EXECUTE PASSIVE SCAN ]</button>
+<div class="meter"><div class="bar" id="bar"></div></div><p class="muted" id="status">SYSTEM READY // HTTPS ONLY // AUTHORIZED TARGETS ONLY</p>
 </section>
 <section class="card" id="results" hidden>
-<h3>📊 ملخص النتائج</h3><div class="grid" id="summary"></div>
-<h3 style="margin-top:22px">🔐 إعدادات TLS</h3><div id="tls"></div>
-<h3 style="margin-top:22px">🧭 ترويسات HTTP</h3><div id="headers"></div>
-<h3 style="margin-top:22px">🍪 Cookies</h3><div id="cookies"></div>
-<h3 style="margin-top:22px">🚨 الملاحظات</h3><div id="findings"></div>
-<div class="actions"><button onclick="downloadReport()">تنزيل تقرير JSON</button><button class="secondary" onclick="copyReport()">نسخ التقرير</button></div>
+<h3>&gt; EXECUTIVE_SUMMARY</h3><div class="grid" id="summary"></div>
+<h3>&gt; TLS_CERTIFICATE</h3><div id="tls"></div>
+<h3>&gt; HTTP_SECURITY_HEADERS</h3><div id="headers"></div>
+<h3>&gt; COOKIE_AUDIT</h3><div id="cookies"></div>
+<h3>&gt; REDIRECT_ANALYSIS</h3><div id="redirect"></div>
+<h3>&gt; FINDINGS</h3><div id="findings"></div>
+<div class="actions"><button onclick="downloadReport()">[ EXPORT JSON ]</button><button class="secondary" onclick="copyReport()">[ COPY REPORT ]</button></div>
 <p class="muted" id="disclaimer"></p>
 </section>
 </main>
 <script>
-let report=null;
-const el=id=>document.getElementById(id);
-function tile(k,v){const d=document.createElement('div');d.className='tile';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v??'غير متاح');d.append(b,s);return d}
+let report=null;const el=id=>document.getElementById(id);
+function tile(k,v){const d=document.createElement('div');d.className='tile';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v??'Unavailable');d.append(b,s);return d}
 function item(parent,title,detail,severity='LOW'){const d=document.createElement('div');d.className='item '+severity;const b=document.createElement('b');b.textContent=title;const p=document.createElement('p');p.textContent=detail;d.append(b,p);parent.append(d)}
-function startScan(){
- let u;try{u=new URL(el('target').value.trim());if(u.protocol!=='https:'||u.username||u.password||u.port&&u.port!=='443')throw Error();}catch{el('status').textContent='أدخل رابط HTTPS صحيحاً على المنفذ 443.';return}
- if(!el('authorized').checked){el('status').textContent='أكد امتلاكك للتصريح قبل الفحص.';return}
- el('scan').disabled=true;el('results').hidden=false;
- ['summary','tls','headers','cookies','findings'].forEach(id=>el(id).replaceChildren());
- el('bar').style.width='25%';el('status').textContent='جاري التحقق من النطاق والاتصال الآمن...';
- Nexus.scan(u.href);
-}
-window.receiveScan=function(raw){
- const d=JSON.parse(raw);el('scan').disabled=false;el('bar').style.width='100%';
- if(!d.ok){el('status').textContent='تعذر الفحص: '+d.error;return}
- report=d;el('status').textContent='اكتمل الفحص.';
- const s=el('summary');s.append(tile('الهدف',d.target),tile('HTTP Status',d.status),tile('درجة المؤشر',d.score+'/100'),tile('نوع المحتوى',d.contentType),tile('DNS',d.dns.join(', ')),tile('Server',d.serverHeader));
- const score=document.createElement('div');score.className='score';score.textContent=d.score+'/100';s.prepend(score);
- Object.entries(d.tls).forEach(([k,v])=>item(el('tls'),k,v));
- Object.entries(d.headers).forEach(([k,v])=>item(el('headers'),k,v||'غير موجود أو لم يتم إرساله',v?'LOW':'MEDIUM'));
- if(!d.cookies.length)item(el('cookies'),'Cookies','لم يتم رصد Set-Cookie في الاستجابة.','LOW');
- d.cookies.forEach(c=>item(el('cookies'),'Cookie '+c.index,`Secure=${c.secure} · HttpOnly=${c.httpOnly} · SameSite=${c.sameSite} · ${c.preview}`,(!c.secure||!c.httpOnly||!c.sameSite)?'MEDIUM':'LOW'));
- if(!d.findings.length)item(el('findings'),'لا توجد ملاحظات ضمن الاختبارات المحدودة','هذا لا يثبت خلو الموقع من الثغرات.','LOW');
- d.findings.forEach(f=>item(el('findings'),`[${f.severity}] ${f.title}`,f.detail,f.severity));
- el('disclaimer').textContent=d.scoreDisclaimer+' '+d.scopeNote;
-};
-function downloadReport(){if(!report)return;const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-x-ultra-report.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function startScan(){let u;try{u=new URL(el('target').value.trim());if(u.protocol!=='https:'||u.username||u.password||u.port&&u.port!=='443')throw Error()}catch{el('status').textContent='ERROR // أدخل رابط HTTPS صحيحاً على المنفذ 443.';return}
+if(!el('authorized').checked){el('status').textContent='ACCESS DENIED // أكد وجود تصريح للفحص.';return}
+el('scan').disabled=true;el('results').hidden=false;['summary','tls','headers','cookies','redirect','findings'].forEach(id=>el(id).replaceChildren());el('bar').style.width='30%';el('status').textContent='RUNNING // DNS + TLS + HTTP SECURITY CONFIGURATION';Nexus.scan(u.href)}
+window.receiveScan=function(raw){const d=JSON.parse(raw);el('scan').disabled=false;el('bar').style.width='100%';if(!d.ok){el('status').textContent='SCAN ERROR // '+d.error;return}report=d;el('status').textContent='SCAN COMPLETE // '+new Date(d.timestamp).toLocaleString();
+const s=el('summary');s.append(tile('TARGET',d.target),tile('HTTP STATUS',d.status),tile('SECURITY CONFIG SCORE',d.score+'/100'),tile('FINDING COUNTS',JSON.stringify(d.severityCounts)),tile('DNS ADDRESSES',d.dns.join(', ')),tile('SERVER DISCLOSURE',d.serverHeader));const score=document.createElement('div');score.className='score';score.textContent=d.score+'/100';s.prepend(score);
+Object.entries(d.tls).forEach(([k,v])=>item(el('tls'),k,v));Object.entries(d.headers).forEach(([k,v])=>item(el('headers'),k,v||'Not observed in this response',v?'INFO':'LOW'));
+if(!d.cookies.length)item(el('cookies'),'No Set-Cookie headers','No cookies were observed in this response.','INFO');d.cookies.forEach(c=>item(el('cookies'),c.name,'Secure='+c.secure+' // HttpOnly='+c.httpOnly+' // SameSite='+c.sameSite,(!c.secure||!c.httpOnly||!c.sameSite)?'MEDIUM':'LOW'));
+if(d.redirect&&d.redirect!=='null')item(el('redirect'),'Redirect destination',JSON.stringify(d.redirect),'INFO');else item(el('redirect'),'No redirect destination','No Location header was observed.','INFO');
+if(!d.findings.length)item(el('findings'),'No findings in tested checks','This does not prove that the site is vulnerability-free.','INFO');d.findings.forEach(f=>item(el('findings'),'['+f.severity+'] '+f.title,f.detail+' // Score deduction: '+f.deduction,f.severity));
+el('disclaimer').textContent=d.scoreDisclaimer+' '+d.scopeNote};
+function downloadReport(){if(!report)return;const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-x-ultra-audit.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function copyReport(){if(report&&navigator.clipboard)navigator.clipboard.writeText(JSON.stringify(report,null,2))}
 </script></body></html>
