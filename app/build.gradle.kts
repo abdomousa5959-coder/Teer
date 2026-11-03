@@ -11,8 +11,8 @@ android {
         applicationId = "com.tulipeni.nexusultra"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
-        versionName = "2.0.0"
+        versionCode = 3
+        versionName = "4.0.0"
     }
 
     // Keep Java and Kotlin bytecode targets aligned for the JDK 17 CI runner.
