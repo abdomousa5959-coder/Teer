@@ -93,6 +93,7 @@ class MainActivity : Activity() {
             val isRedirect = status in 300..399
             val isHtml = contentType.contains("text/html", true) || contentType.contains("application/xhtml", true)
             val isXml = contentType.contains("xml", true)
+            val isJavaScript = contentType.contains("javascript", true) || contentType.contains("ecmascript", true)
             val findings = JSONArray()
             var deductions = 0
             fun add(severity: String, title: String, detail: String, points: Int = 0) {
@@ -163,7 +164,7 @@ class MainActivity : Activity() {
 
             // Read a bounded response sample only; never download an unbounded response body.
             val pageAnalysis = JSONObject()
-            if ((isHtml || isXml || contentType.contains("text/plain", true) || contentType.contains("application/json", true)) && !isRedirect) {
+            if ((isHtml || isXml || isJavaScript || contentType.contains("text/plain", true) || contentType.contains("application/json", true) || contentType.contains("text/css", true)) && !isRedirect) {
                 val stream = if (status >= 400) conn.errorStream else conn.inputStream
                 val body = stream?.use { readBounded(it, 512 * 1024) } ?: ""
                 val lower = body.lowercase()
@@ -245,16 +246,34 @@ class MainActivity : Activity() {
                 val sqlErrorHits = sqlErrorPatterns.count { it.containsMatchIn(body) }
                 val phpError = Regex("""(?i)(\bPHP (Warning|Notice|Fatal error|Parse error|Deprecated)\b|Uncaught (Error|Exception)|Stack trace:|\bphpinfo\(\))""").containsMatchIn(body)
                 val phpSourceExposed = Regex("""(?is)<\?php\s|<\?=\s*[$\w]""").containsMatchIn(body)
+                val jsEvalCalls = if (isJavaScript || isHtml) Regex("""(?i)\beval\s*\(""").findAll(body).count() else 0
+                val jsDocumentWrite = if (isJavaScript || isHtml) Regex("""(?i)\bdocument\s*\.\s*write\s*\(""").findAll(body).count() else 0
+                val jsInnerHtml = if (isJavaScript || isHtml) Regex("""(?i)\.\s*innerHTML\s*=""").findAll(body).count() else 0
+                val awsKeyIndicators = Regex("""\bAKIA[0-9A-Z]{16}\b""").findAll(body).count()
+                val privateKeyBlocks = Regex("""-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----""").findAll(body).count()
+                val genericApiKeyIndicators = Regex("""(?i)(api[_-]?key|client[_-]?secret|access[_-]?token)\s*[:=]\s*["'][A-Za-z0-9_./+=-]{16,}["']""").findAll(body).count()
                 val xmlDoctype = isXml && Regex("""(?is)<!DOCTYPE\s+[^>]+>""").containsMatchIn(body)
                 val xmlExternalEntity = isXml && Regex("""(?is)<!ENTITY\s+[^>]+\b(SYSTEM|PUBLIC)\b""").containsMatchIn(body)
                 pageAnalysis.put("sqlErrorSignatureCount", sqlErrorHits)
                     .put("phpRuntimeErrorSignature", phpError)
                     .put("phpSourceCodePattern", phpSourceExposed)
+                    .put("javascriptEvalCalls", jsEvalCalls)
+                    .put("javascriptDocumentWriteCalls", jsDocumentWrite)
+                    .put("javascriptInnerHtmlAssignments", jsInnerHtml)
+                    .put("awsAccessKeyIndicators", awsKeyIndicators)
+                    .put("privateKeyBlockIndicators", privateKeyBlocks)
+                    .put("genericSecretIndicators", genericApiKeyIndicators)
                     .put("xmlDoctypeDeclaration", xmlDoctype)
                     .put("xmlExternalEntityDeclaration", xmlExternalEntity)
                 if (sqlErrorHits > 0) add("MEDIUM", "رسائل أخطاء SQL ظاهرة", "تم رصد مؤشرات رسائل أخطاء قواعد بيانات ($sqlErrorHits). هذا إفصاح معلومات محتمل وليس إثبات SQL injection.", 4)
                 if (phpError) add("MEDIUM", "رسائل أخطاء PHP أو Stack Trace ظاهرة", "قد تكشف تفاصيل داخلية أو مسارات ملفات؛ عطّل عرض الأخطاء في بيئة الإنتاج.", 5)
                 if (phpSourceExposed) add("HIGH", "نمط محتمل لكشف مصدر PHP", "ظهور وسم PHP في الاستجابة قد يعني كشف الشيفرة أو قد يكون مثالاً تعليمياً؛ راجع المحتوى يدوياً.", 8)
+                if (privateKeyBlocks > 0) add("CRITICAL", "مادة مفتاح خاص مكشوفة", "تم رصد كتلة تشبه مفتاحاً خاصاً في استجابة عامة. تحقق فوراً، وألغِ المفتاح ودوّره إذا كان حقيقياً.", 25)
+                if (awsKeyIndicators > 0) add("HIGH", "مؤشر مفتاح AWS ظاهر", "تم رصد نمط access key يشبه مفاتيح AWS. تحقق من صحته وألغِه إذا كان سراً حقيقياً.", 12)
+                if (genericApiKeyIndicators > 0) add("MEDIUM", "مؤشرات أسرار أو مفاتيح API", "تم رصد $genericApiKeyIndicators نمطاً قد يشير إلى أسرار مضمنة؛ قد تكون مفاتيح عامة أو أمثلة، لذا يلزم التحقق يدوياً.", 5)
+                if (jsEvalCalls > 0) add("INFO", "استخدام eval في JavaScript", "تم رصد $jsEvalCalls استدعاءً لـ eval؛ راجع مصدر المدخلات قبل استخدامه.", 0)
+                if (jsDocumentWrite > 0) add("INFO", "استخدام document.write", "تم رصد $jsDocumentWrite استدعاءً لـ document.write؛ راجع سياق البيانات المُدرجة.", 0)
+                if (jsInnerHtml > 0) add("INFO", "تعيينات innerHTML في JavaScript", "تم رصد $jsInnerHtml تعييناً لـ innerHTML؛ هذا نمط يستحق مراجعة مصدر البيانات والترميز.", 0)
                 if (xmlDoctype) add("INFO", "XML يحتوي DOCTYPE", "وجود DOCTYPE وحده لا يثبت XXE؛ تحقق من إعدادات محلل XML في التطبيق المستهلك.", 0)
                 if (xmlExternalEntity) add("MEDIUM", "XML يعلن كياناً خارجياً", "رُصد تعريف ENTITY مع SYSTEM أو PUBLIC. هذا ليس إثبات XXE؛ الخطر يعتمد على محلل XML الذي يعالج المستند.", 4)
                 pageAnalysis.put("sampleBytes", body.toByteArray(Charsets.UTF_8).size)
@@ -279,9 +298,9 @@ class MainActivity : Activity() {
                 if (sourceMapReferences > 0) add("INFO", "مراجع Source Map ظاهرة", "تم رصد $sourceMapReferences مؤشراً لمراجع خرائط مصدر؛ تحقق من عدم نشر خرائط تحتوي شيفرة أو بيانات حساسة.", 0)
                 if (externalScriptsWithoutSri > 0) add("INFO", "سكريبتات خارجية دون SRI", "تم رصد $externalScriptsWithoutSri وسماً لسكريبت خارجي دون integrity؛ SRI مفيد للملفات الثابتة المستضافة خارجياً.", 0)
                 if (inlineScripts > 0 && csp.isNullOrBlank()) add("INFO", "كتل JavaScript داخلية", "تم رصد $inlineScripts كتلة script داخل الصفحة مع غياب CSP؛ هذه ملاحظة سياقية وليست إثبات XSS.", 0)
-                pageAnalysis.put("analysisNote", "تحليل ساكن لعينة HTML محدودة؛ لا ينفذ JavaScript ولا يثبت قابلية الاستغلال.")
+                pageAnalysis.put("analysisNote", if (isJavaScript) "تحليل ساكن لعينة JavaScript محدودة؛ لا ينفذ الشيفرة ولا يثبت قابلية الاستغلال." else "تحليل ساكن لعينة استجابة محدودة؛ لا ينفذ JavaScript ولا يثبت قابلية الاستغلال.")
             } else {
-                pageAnalysis.put("analysisNote", "لم يتم تحليل HTML لأن الاستجابة ليست صفحة HTML مباشرة.")
+                pageAnalysis.put("analysisNote", "نوع المحتوى غير مدعوم للتحليل النصي في هذا الفحص.")
             }
 
             val cookies = JSONArray()
