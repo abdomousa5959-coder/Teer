@@ -81,7 +81,7 @@ class MainActivity : Activity() {
             readTimeout = 8000
             instanceFollowRedirects = false
             useCaches = false
-            setRequestProperty("User-Agent", "NexusXUltra/4.0 (passive-security-audit)")
+            setRequestProperty("User-Agent", "NexusXUltra/5.1 (authorized-security-audit)")
             setRequestProperty("Accept", "text/html,application/xhtml+xml,application/json;q=0.9,*/*;q=0.7")
             setRequestProperty("Connection", "close")
         }
@@ -298,7 +298,17 @@ class MainActivity : Activity() {
                 if (sourceMapReferences > 0) add("INFO", "مراجع Source Map ظاهرة", "تم رصد $sourceMapReferences مؤشراً لمراجع خرائط مصدر؛ تحقق من عدم نشر خرائط تحتوي شيفرة أو بيانات حساسة.", 0)
                 if (externalScriptsWithoutSri > 0) add("INFO", "سكريبتات خارجية دون SRI", "تم رصد $externalScriptsWithoutSri وسماً لسكريبت خارجي دون integrity؛ SRI مفيد للملفات الثابتة المستضافة خارجياً.", 0)
                 if (inlineScripts > 0 && csp.isNullOrBlank()) add("INFO", "كتل JavaScript داخلية", "تم رصد $inlineScripts كتلة script داخل الصفحة مع غياب CSP؛ هذه ملاحظة سياقية وليست إثبات XSS.", 0)
-                pageAnalysis.put("analysisNote", if (isJavaScript) "تحليل ساكن لعينة JavaScript محدودة؛ لا ينفذ الشيفرة ولا يثبت قابلية الاستغلال." else "تحليل ساكن لعينة استجابة محدودة؛ لا ينفذ JavaScript ولا يثبت قابلية الاستغلال.")
+                pageAnalysis.put("discoveredLinks", discoveredLinks)
+                    .put("robotsDisallowedPaths", robotsDisallowedPaths)
+                    .put("sampleBytes", body.toByteArray(Charsets.UTF_8).size)
+                    .put("truncated", body.toByteArray(Charsets.UTF_8).size >= 512 * 1024)
+                    .put("htmlScriptTags", scripts.size)
+                    .put("externalScriptsWithoutSri", externalScriptsWithoutSri)
+                    .put("inlineScriptBlocks", inlineScripts)
+                    .put("passwordForms", passwordForms.size)
+                    .put("insecurePasswordForms", insecurePasswordForms)
+                    .put("httpResourceReferences", insecureRefs)
+                    .put("analysisNote", if (isJavaScript) "تحليل ساكن لعينة JavaScript محدودة؛ لا ينفذ الشيفرة ولا يثبت قابلية الاستغلال." else "تحليل ساكن لعينة استجابة محدودة؛ لا ينفذ JavaScript ولا يثبت قابلية الاستغلال.")
             } else {
                 pageAnalysis.put("analysisNote", "نوع المحتوى غير مدعوم للتحليل النصي في هذا الفحص.")
             }
@@ -417,16 +427,18 @@ class MainActivity : Activity() {
         val queue = ArrayDeque<String>()
         val seen = linkedSetOf(baseUrl.toString())
         val pages = JSONArray()
-        val baseLinks = base.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
-        if (baseLinks != null) for (i in 0 until baseLinks.length()) queue.add(baseLinks.optString(i))
+        val blockedPaths = mutableListOf<String>()
         queue.add(URL(baseUrl, "/robots.txt").toString())
         queue.add(URL(baseUrl, "/sitemap.xml").toString())
+        val baseLinks = base.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
+        if (baseLinks != null) for (i in 0 until baseLinks.length()) queue.add(baseLinks.optString(i))
         while (queue.isNotEmpty() && pages.length() < 8) {
             val next = queue.removeFirst()
             if (!seen.add(next)) continue
             val u = try { URL(next) } catch (_: Exception) { continue }
             if (!u.protocol.equals("https", true) || !u.host.equals(host, true) ||
                 (u.port != -1 && u.port != 443) || u.query != null || u.userInfo != null) continue
+            if (blockedPaths.any { rule -> rule.isNotBlank() && u.path.startsWith(rule) }) continue
             val result = try { scanTarget(next) } catch (e: Exception) {
                 JSONObject().put("ok", false).put("target", next).put("error", e.message ?: "تعذر فحص الصفحة")
             }
@@ -437,7 +449,13 @@ class MainActivity : Activity() {
                 .put("severityCounts", result.optJSONObject("severityCounts") ?: JSONObject())
                 .put("findings", result.optJSONArray("findings") ?: JSONArray())
                 .put("error", result.optString("error", "")))
-            val links = result.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
+            val analysis = result.optJSONObject("pageAnalysis")
+            val disallowed = analysis?.optJSONArray("robotsDisallowedPaths")
+            if (disallowed != null) for (i in 0 until disallowed.length()) {
+                val rule = disallowed.optString(i)
+                if (rule.isNotBlank() && rule !in blockedPaths) blockedPaths.add(rule)
+            }
+            val links = analysis?.optJSONArray("discoveredLinks")
             if (links != null) for (i in 0 until links.length()) {
                 val link = links.optString(i)
                 if (link.isNotBlank() && link !in seen && queue.size < 100) queue.add(link)
@@ -450,7 +468,7 @@ class MainActivity : Activity() {
             .put("maxAdditionalPages", 8)
             .put("note", "تم اتباع روابط HTTPS الداخلية فقط وطلبات GET محدودة. لم يتم إرسال نماذج أو تخمين مسارات أو تنفيذ استغلال.")
         base.put("siteCrawl", crawl)
-        base.put("engineVersion", "5.0")
+        base.put("engineVersion", "5.1")
         base.put("scopeNote", "تدقيق محدود متعدد الصفحات ضمن نفس النطاق، بحد أقصى 12 صفحة وطلبات GET فقط. لا ينفذ brute force أو استغلالاً أو إرسال نماذج أو تخمين مسارات.")
         return base
     }
