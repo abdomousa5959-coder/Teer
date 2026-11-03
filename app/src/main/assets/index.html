@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#080d18"><title>NEXUS X ULTRA</title>
+<style>
+:root{color-scheme:dark;--bg:#080d18;--panel:#111b2d;--line:#263750;--green:#00e5a0;--muted:#91a1b9;--red:#ff6577;--amber:#ffc66d}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 50% 0,#14243b,var(--bg) 55%);color:#edf4ff;font-family:Arial,sans-serif;padding:18px}
+main{max-width:900px;margin:auto}.hero{text-align:center;padding:30px 0 20px}.hero h1{color:var(--green);font-size:30px;letter-spacing:2px;margin:0}.hero p,.muted{color:var(--muted);line-height:1.7}
+.card{background:rgba(17,27,45,.96);border:1px solid var(--line);border-radius:16px;padding:19px;margin:14px 0;box-shadow:0 12px 30px #0003}
+input{width:100%;padding:15px;border-radius:9px;border:1px solid #354862;background:#080d18;color:white;direction:ltr;font-size:16px;margin:12px 0}
+button{border:0;border-radius:9px;background:var(--green);color:#06130f;font-weight:bold;padding:14px 18px;font-size:15px;cursor:pointer}
+button:disabled{opacity:.5}.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:13px;line-height:1.6;margin:12px 0}
+.check input{width:auto;margin:3px 0}.meter{height:8px;background:#263750;border-radius:9px;margin-top:16px;overflow:hidden}.bar{height:100%;width:0;background:var(--green);transition:.3s}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.tile{background:#080d18;border:1px solid var(--line);border-radius:11px;padding:13px}.tile b{display:block;color:var(--muted);font-size:12px;margin-bottom:7px}.tile span{overflow-wrap:anywhere}
+.score{font-size:44px;font-weight:bold;color:var(--green)}.item{background:#080d18;border-right:3px solid var(--green);padding:13px;border-radius:8px;margin:9px 0;overflow-wrap:anywhere}.item p{color:var(--muted);line-height:1.6;margin:6px 0 0}.HIGH{border-color:var(--red)}.MEDIUM{border-color:var(--amber)}.LOW{border-color:#8da4c3}
+.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px}.actions button{flex:1;min-width:130px}.secondary{background:#243750;color:#edf4ff}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:24px}}
+</style></head>
+<body><main>
+<header class="hero"><h1>⚡ NEXUS X ULTRA</h1><p>Android Web Security Assessment Suite<br>محرك فحص إعدادات أمان المواقع</p></header>
+<section class="card">
+<h3>🎯 الهدف</h3>
+<input id="target" type="url" placeholder="https://example.com" autocomplete="url">
+<label class="check"><input id="authorized" type="checkbox"><span>أؤكد أنني أملك هذا الموقع أو لدي تصريح صريح بفحصه.</span></label>
+<button id="scan" style="width:100%" onclick="startScan()">بدء الفحص</button>
+<div class="meter"><div class="bar" id="bar"></div></div><p class="muted" id="status">جاهز — يفحص عنوان HTTPS واحداً دون استغلال أو تخمين مسارات.</p>
+</section>
+<section class="card" id="results" hidden>
+<h3>📊 ملخص النتائج</h3><div class="grid" id="summary"></div>
+<h3 style="margin-top:22px">🔐 إعدادات TLS</h3><div id="tls"></div>
+<h3 style="margin-top:22px">🧭 ترويسات HTTP</h3><div id="headers"></div>
+<h3 style="margin-top:22px">🍪 Cookies</h3><div id="cookies"></div>
+<h3 style="margin-top:22px">🚨 الملاحظات</h3><div id="findings"></div>
+<div class="actions"><button onclick="downloadReport()">تنزيل تقرير JSON</button><button class="secondary" onclick="copyReport()">نسخ التقرير</button></div>
+<p class="muted" id="disclaimer"></p>
+</section>
+</main>
+<script>
+let report=null;
+const el=id=>document.getElementById(id);
+function tile(k,v){const d=document.createElement('div');d.className='tile';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v??'غير متاح');d.append(b,s);return d}
+function item(parent,title,detail,severity='LOW'){const d=document.createElement('div');d.className='item '+severity;const b=document.createElement('b');b.textContent=title;const p=document.createElement('p');p.textContent=detail;d.append(b,p);parent.append(d)}
+function startScan(){
+ let u;try{u=new URL(el('target').value.trim());if(u.protocol!=='https:'||u.username||u.password||u.port&&u.port!=='443')throw Error();}catch{el('status').textContent='أدخل رابط HTTPS صحيحاً على المنفذ 443.';return}
+ if(!el('authorized').checked){el('status').textContent='أكد امتلاكك للتصريح قبل الفحص.';return}
+ el('scan').disabled=true;el('results').hidden=false;
+ ['summary','tls','headers','cookies','findings'].forEach(id=>el(id).replaceChildren());
+ el('bar').style.width='25%';el('status').textContent='جاري التحقق من النطاق والاتصال الآمن...';
+ Nexus.scan(u.href);
+}
+window.receiveScan=function(raw){
+ const d=JSON.parse(raw);el('scan').disabled=false;el('bar').style.width='100%';
+ if(!d.ok){el('status').textContent='تعذر الفحص: '+d.error;return}
+ report=d;el('status').textContent='اكتمل الفحص.';
+ const s=el('summary');s.append(tile('الهدف',d.target),tile('HTTP Status',d.status),tile('درجة المؤشر',d.score+'/100'),tile('نوع المحتوى',d.contentType),tile('DNS',d.dns.join(', ')),tile('Server',d.serverHeader));
+ const score=document.createElement('div');score.className='score';score.textContent=d.score+'/100';s.prepend(score);
+ Object.entries(d.tls).forEach(([k,v])=>item(el('tls'),k,v));
+ Object.entries(d.headers).forEach(([k,v])=>item(el('headers'),k,v||'غير موجود أو لم يتم إرساله',v?'LOW':'MEDIUM'));
+ if(!d.cookies.length)item(el('cookies'),'Cookies','لم يتم رصد Set-Cookie في الاستجابة.','LOW');
+ d.cookies.forEach(c=>item(el('cookies'),'Cookie '+c.index,`Secure=${c.secure} · HttpOnly=${c.httpOnly} · SameSite=${c.sameSite} · ${c.preview}`,(!c.secure||!c.httpOnly||!c.sameSite)?'MEDIUM':'LOW'));
+ if(!d.findings.length)item(el('findings'),'لا توجد ملاحظات ضمن الاختبارات المحدودة','هذا لا يثبت خلو الموقع من الثغرات.','LOW');
+ d.findings.forEach(f=>item(el('findings'),`[${f.severity}] ${f.title}`,f.detail,f.severity));
+ el('disclaimer').textContent=d.scoreDisclaimer+' '+d.scopeNote;
+};
+function downloadReport(){if(!report)return;const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-x-ultra-report.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function copyReport(){if(report&&navigator.clipboard)navigator.clipboard.writeText(JSON.stringify(report,null,2))}
+</script></body></html>
