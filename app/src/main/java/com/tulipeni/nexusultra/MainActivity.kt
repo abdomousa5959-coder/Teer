@@ -143,20 +143,20 @@ class MainActivity : Activity() {
                 val stream = if (status >= 400) conn.errorStream else conn.inputStream
                 val body = stream?.use { readBounded(it, 512 * 1024) } ?: ""
                 val lower = body.lowercase()
-                val insecureRefs = Regex("""(?:src|href)\\s*=\\s*["']http://[^"']+["']""", RegexOption.IGNORE_CASE).findAll(body).count()
-                val scripts = Regex("""<script\\b[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).toList()
+                val insecureRefs = Regex("""(?:src|href)\s*=\s*["']http://[^"']+["']""", RegexOption.IGNORE_CASE).findAll(body).count()
+                val scripts = Regex("""<script\b[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).toList()
                 val externalScriptsWithoutSri = scripts.count {
                     val tag = it.value
-                    Regex("""\\bsrc\\s*=""", RegexOption.IGNORE_CASE).containsMatchIn(tag) &&
-                        !Regex("""\\bintegrity\\s*=""", RegexOption.IGNORE_CASE).containsMatchIn(tag)
+                    Regex("""\bsrc\s*=""", RegexOption.IGNORE_CASE).containsMatchIn(tag) &&
+                        !Regex("""\bintegrity\s*=""", RegexOption.IGNORE_CASE).containsMatchIn(tag)
                 }
-                val passwordForms = Regex("""<form\\b[^>]*>.*?</form>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
-                    .findAll(body).filter { Regex("""type\\s*=\\s*["']?password""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }.toList()
+                val passwordForms = Regex("""<form\b[^>]*>.*?</form>""", setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL))
+                    .findAll(body).filter { Regex("""type\s*=\s*["']?password""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }.toList()
                 val insecurePasswordForms = passwordForms.count { form ->
-                    val action = Regex("""action\\s*=\\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(form.value)?.groupValues?.get(1)
+                    val action = Regex("""action\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(form.value)?.groupValues?.get(1)
                     action?.startsWith("http://", true) == true
                 }
-                val inlineScripts = Regex("""<script\\b(?![^>]*\\bsrc\\s*=)[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).count()
+                val inlineScripts = Regex("""<script\b(?![^>]*\bsrc\s*=)[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).count()
                 pageAnalysis.put("sampleBytes", body.toByteArray(Charsets.UTF_8).size)
                     .put("truncated", body.toByteArray(Charsets.UTF_8).size >= 512 * 1024)
                     .put("htmlScriptTags", scripts.size)
