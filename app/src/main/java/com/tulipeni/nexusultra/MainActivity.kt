@@ -94,7 +94,8 @@ class MainActivity : Activity() {
                 "X-Content-Type-Options", "X-Frame-Options", "Referrer-Policy",
                 "Permissions-Policy", "Cross-Origin-Opener-Policy",
                 "Cross-Origin-Resource-Policy", "Cross-Origin-Embedder-Policy",
-                "X-Permitted-Cross-Domain-Policies", "Cache-Control"
+                "X-Permitted-Cross-Domain-Policies", "Cache-Control", "Access-Control-Allow-Origin",
+                "Access-Control-Allow-Credentials", "Access-Control-Allow-Methods", "Access-Control-Allow-Headers"
             )
             val headers = JSONObject()
             headerNames.forEach { name -> headers.put(name, conn.getHeaderField(name) ?: JSONObject.NULL) }
@@ -121,6 +122,8 @@ class MainActivity : Activity() {
                         add("HIGH", "مصادر CSP واسعة جداً", "استخدام wildcard في default-src أو script-src يوسع الثقة في مصادر المحتوى.", 8)
                     if (!directives.containsKey("object-src")) add("LOW", "CSP لا يحدد object-src", "يفضل object-src 'none' لمنع تحميل إضافات قديمة.", 2)
                     if (!directives.containsKey("base-uri")) add("LOW", "CSP لا يحدد base-uri", "يفضل تقييد base-uri لتقليل مخاطر إساءة استخدام عنصر base.", 2)
+                    if (!directives.containsKey("form-action")) add("INFO", "CSP لا يحدد form-action", "يمكن تقييد وجهات إرسال النماذج باستخدام form-action.", 0)
+                    if (!directives.containsKey("upgrade-insecure-requests")) add("INFO", "CSP لا يطلب ترقية الموارد غير الآمنة", "راجع upgrade-insecure-requests عند ملاءمته لتطبيقك.", 0)
                     if (!directives.containsKey("frame-ancestors") && conn.getHeaderField("X-Frame-Options").isNullOrBlank())
                         add("LOW", "سياسة منع التأطير غير مرصودة", "لم يتم رصد frame-ancestors أو X-Frame-Options.", 3)
                 }
@@ -136,9 +139,15 @@ class MainActivity : Activity() {
                     add("INFO", "CORP غير موجود", "قد يكون مناسباً حسب كيفية مشاركة الموارد عبر المواقع.", 0)
                 if (conn.getHeaderField("Cross-Origin-Embedder-Policy").isNullOrBlank())
                     add("INFO", "COEP غير موجود", "مطلوب فقط لبعض سيناريوهات cross-origin isolation.", 0)
+                val acao = conn.getHeaderField("Access-Control-Allow-Origin")
+                val acac = conn.getHeaderField("Access-Control-Allow-Credentials")
+                if (acao == "*" && acac.equals("true", true))
+                    add("HIGH", "إعداد CORS متعارض وخطير", "تم رصد ACAO wildcard مع Allow-Credentials=true؛ راجع إعدادات CORS الفعلية والمتصفحات.", 8)
+                else if (acao == "*")
+                    add("INFO", "CORS يسمح لأي Origin", "Access-Control-Allow-Origin=* قد يكون مقصوداً للموارد العامة؛ راجع حساسية البيانات.", 0)
             }
 
-            // Read a bounded HTML sample only; never download an unbounded response body.
+            // Read a bounded response sample only; never download an unbounded response body.
             val pageAnalysis = JSONObject()
             if ((isHtml || isXml || contentType.contains("text/plain", true) || contentType.contains("application/json", true)) && !isRedirect) {
                 val stream = if (status >= 400) conn.errorStream else conn.inputStream
@@ -157,6 +166,14 @@ class MainActivity : Activity() {
                     val action = Regex("""action\s*=\s*["']([^"']+)["']""", RegexOption.IGNORE_CASE).find(form.value)?.groupValues?.get(1)
                     action?.startsWith("http://", true) == true
                 }
+                val passwordGetForms = passwordForms.count { form ->
+                    Regex("""method\s*=\s*["']?get\b""", RegexOption.IGNORE_CASE).containsMatchIn(form.value)
+                }
+                val unsafeBlankLinks = Regex("""<a\b[^>]*target\s*=\s*["']_blank["'][^>]*>""", RegexOption.IGNORE_CASE)
+                    .findAll(body).count { !Regex("""\brel\s*=\s*["'][^"']*(noopener|noreferrer)""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }
+                val unsandboxedIframes = Regex("""<iframe\b[^>]*>""", RegexOption.IGNORE_CASE).findAll(body)
+                    .count { !Regex("""\bsandbox\b""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }
+                val sourceMapReferences = Regex("""(?i)sourceMappingURL=|\.map(?:["'\s?]|$)""").findAll(body).count()
                 val inlineScripts = Regex("""<script\b(?![^>]*\bsrc\s*=)[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).count()
                 val sqlErrorPatterns = listOf(
                     Regex("""(?i)\bSQL syntax.*MySQL|mysql_fetch_|mysqli?_\w+\(.*\):"""),
@@ -187,9 +204,17 @@ class MainActivity : Activity() {
                     .put("inlineScriptBlocks", inlineScripts)
                     .put("passwordForms", passwordForms.size)
                     .put("insecurePasswordForms", insecurePasswordForms)
+                    .put("passwordFormsUsingGET", passwordGetForms)
+                    .put("linksTargetBlankWithoutNoopener", unsafeBlankLinks)
+                    .put("iframesWithoutSandbox", unsandboxedIframes)
+                    .put("sourceMapReferences", sourceMapReferences)
                     .put("httpResourceReferences", insecureRefs)
                 if (insecureRefs > 0) add("MEDIUM", "موارد HTTP داخل صفحة HTTPS", "تم رصد $insecureRefs مرجعاً يستخدم HTTP داخل عينة HTML؛ تحقق من mixed content.", 5)
                 if (insecurePasswordForms > 0) add("HIGH", "نموذج كلمة مرور يرسل إلى HTTP", "تم رصد نموذج كلمة مرور يحدد action عبر HTTP؛ راجع مسار الإرسال فوراً.", 12)
+                if (passwordGetForms > 0) add("HIGH", "نموذج كلمة مرور يستخدم GET", "تم رصد نموذج كلمة مرور يستخدم GET؛ قد تتسرب القيم إلى URL والسجلات وسجل المتصفح.", 10)
+                if (unsafeBlankLinks > 0) add("LOW", "روابط _blank دون noopener", "تم رصد $unsafeBlankLinks رابطاً يفتح نافذة جديدة دون rel=noopener/noreferrer.", 2)
+                if (unsandboxedIframes > 0) add("INFO", "إطارات iframe دون sandbox", "تم رصد $unsandboxedIframes إطاراً دون sandbox؛ قد يكون ذلك مقصوداً حسب الوظيفة.", 0)
+                if (sourceMapReferences > 0) add("INFO", "مراجع Source Map ظاهرة", "تم رصد $sourceMapReferences مؤشراً لمراجع خرائط مصدر؛ تحقق من عدم نشر خرائط تحتوي شيفرة أو بيانات حساسة.", 0)
                 if (externalScriptsWithoutSri > 0) add("INFO", "سكريبتات خارجية دون SRI", "تم رصد $externalScriptsWithoutSri وسماً لسكريبت خارجي دون integrity؛ SRI مفيد للملفات الثابتة المستضافة خارجياً.", 0)
                 if (inlineScripts > 0 && csp.isNullOrBlank()) add("INFO", "كتل JavaScript داخلية", "تم رصد $inlineScripts كتلة script داخل الصفحة مع غياب CSP؛ هذه ملاحظة سياقية وليست إثبات XSS.", 0)
                 pageAnalysis.put("analysisNote", "تحليل ساكن لعينة HTML محدودة؛ لا ينفذ JavaScript ولا يثبت قابلية الاستغلال.")
@@ -290,7 +315,7 @@ class MainActivity : Activity() {
                 counts.put(sev.lowercase(), (0 until findings.length()).count { findings.getJSONObject(it).optString("severity") == sev })
             }
             val score = (100 - deductions.coerceAtMost(100)).coerceAtLeast(0)
-            return JSONObject().put("ok", true).put("engineVersion", "4.1")
+            return JSONObject().put("ok", true).put("engineVersion", "4.2")
                 .put("target", target.toString()).put("timestamp", System.currentTimeMillis())
                 .put("status", status).put("contentType", contentType.ifBlank { "Unavailable" })
                 .put("serverHeader", server ?: "Not disclosed").put("dns", dns)
@@ -321,7 +346,9 @@ class MainActivity : Activity() {
         val p = pattern.lowercase().trimEnd('.')
         if (!p.startsWith("*.")) return host.equals(p, true)
         val suffix = p.substring(1)
-        return host.endsWith(suffix, true) && host.count { it == '.' } == p.count { it == '.' }
+        if (!host.endsWith(suffix, true)) return false
+        val label = host.dropLast(suffix.length)
+        return label.isNotBlank() && !label.contains(".")
     }
 
     private fun finding(severity: String, title: String, detail: String, deduction: Int) =
