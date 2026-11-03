@@ -81,6 +81,7 @@ class MainActivity : Activity() {
             val contentType = conn.contentType ?: ""
             val isRedirect = status in 300..399
             val isHtml = contentType.contains("text/html", true) || contentType.contains("application/xhtml", true)
+            val isXml = contentType.contains("xml", true)
             val findings = JSONArray()
             var deductions = 0
             fun add(severity: String, title: String, detail: String, points: Int = 0) {
@@ -139,7 +140,7 @@ class MainActivity : Activity() {
 
             // Read a bounded HTML sample only; never download an unbounded response body.
             val pageAnalysis = JSONObject()
-            if (isHtml && !isRedirect) {
+            if ((isHtml || isXml || contentType.contains("text/plain", true) || contentType.contains("application/json", true)) && !isRedirect) {
                 val stream = if (status >= 400) conn.errorStream else conn.inputStream
                 val body = stream?.use { readBounded(it, 512 * 1024) } ?: ""
                 val lower = body.lowercase()
@@ -157,6 +158,28 @@ class MainActivity : Activity() {
                     action?.startsWith("http://", true) == true
                 }
                 val inlineScripts = Regex("""<script\b(?![^>]*\bsrc\s*=)[^>]*>""", RegexOption.IGNORE_CASE).findAll(body).count()
+                val sqlErrorPatterns = listOf(
+                    Regex("""(?i)\bSQL syntax.*MySQL|mysql_fetch_|mysqli?_\w+\(.*\):"""),
+                    Regex("""(?i)\b(PostgreSQL|pg_query|pg_exec).*\b(error|failed|syntax)"""),
+                    Regex("""(?i)\b(SQLite/JDBC|SQLiteException|sqlite3\.OperationalError)"""),
+                    Regex("""(?i)\b(ODBC SQL Server Driver|SQLSTATE\[|Microsoft OLE DB Provider for SQL Server)"""),
+                    Regex("""(?i)\b(ORA-\d{5}|Oracle error)""")
+                )
+                val sqlErrorHits = sqlErrorPatterns.count { it.containsMatchIn(body) }
+                val phpError = Regex("""(?i)(\bPHP (Warning|Notice|Fatal error|Parse error|Deprecated)\b|Uncaught (Error|Exception)|Stack trace:|\bphpinfo\(\))""").containsMatchIn(body)
+                val phpSourceExposed = Regex("""(?is)<\?php\s|<\?=\s*[$\w]""").containsMatchIn(body)
+                val xmlDoctype = isXml && Regex("""(?is)<!DOCTYPE\s+[^>]+>""").containsMatchIn(body)
+                val xmlExternalEntity = isXml && Regex("""(?is)<!ENTITY\s+[^>]+\b(SYSTEM|PUBLIC)\b""").containsMatchIn(body)
+                pageAnalysis.put("sqlErrorSignatureCount", sqlErrorHits)
+                    .put("phpRuntimeErrorSignature", phpError)
+                    .put("phpSourceCodePattern", phpSourceExposed)
+                    .put("xmlDoctypeDeclaration", xmlDoctype)
+                    .put("xmlExternalEntityDeclaration", xmlExternalEntity)
+                if (sqlErrorHits > 0) add("MEDIUM", "رسائل أخطاء SQL ظاهرة", "تم رصد مؤشرات رسائل أخطاء قواعد بيانات ($sqlErrorHits). هذا إفصاح معلومات محتمل وليس إثبات SQL injection.", 4)
+                if (phpError) add("MEDIUM", "رسائل أخطاء PHP أو Stack Trace ظاهرة", "قد تكشف تفاصيل داخلية أو مسارات ملفات؛ عطّل عرض الأخطاء في بيئة الإنتاج.", 5)
+                if (phpSourceExposed) add("HIGH", "نمط محتمل لكشف مصدر PHP", "ظهور وسم PHP في الاستجابة قد يعني كشف الشيفرة أو قد يكون مثالاً تعليمياً؛ راجع المحتوى يدوياً.", 8)
+                if (xmlDoctype) add("INFO", "XML يحتوي DOCTYPE", "وجود DOCTYPE وحده لا يثبت XXE؛ تحقق من إعدادات محلل XML في التطبيق المستهلك.", 0)
+                if (xmlExternalEntity) add("MEDIUM", "XML يعلن كياناً خارجياً", "رُصد تعريف ENTITY مع SYSTEM أو PUBLIC. هذا ليس إثبات XXE؛ الخطر يعتمد على محلل XML الذي يعالج المستند.", 4)
                 pageAnalysis.put("sampleBytes", body.toByteArray(Charsets.UTF_8).size)
                     .put("truncated", body.toByteArray(Charsets.UTF_8).size >= 512 * 1024)
                     .put("htmlScriptTags", scripts.size)
@@ -267,7 +290,7 @@ class MainActivity : Activity() {
                 counts.put(sev.lowercase(), (0 until findings.length()).count { findings.getJSONObject(it).optString("severity") == sev })
             }
             val score = (100 - deductions.coerceAtMost(100)).coerceAtLeast(0)
-            return JSONObject().put("ok", true).put("engineVersion", "4.0")
+            return JSONObject().put("ok", true).put("engineVersion", "4.1")
                 .put("target", target.toString()).put("timestamp", System.currentTimeMillis())
                 .put("status", status).put("contentType", contentType.ifBlank { "Unavailable" })
                 .put("serverHeader", server ?: "Not disclosed").put("dns", dns)
