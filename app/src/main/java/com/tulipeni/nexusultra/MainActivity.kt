@@ -112,8 +112,11 @@ class MainActivity : Activity() {
 
             val csp = conn.getHeaderField("Content-Security-Policy")
             if (isHtml && !isRedirect) {
-                if (csp.isNullOrBlank()) add("MEDIUM", "CSP غير موجود", "صفحة HTML لا ترسل Content-Security-Policy.", 9)
-                else {
+                if (csp.isNullOrBlank()) {
+                    add("MEDIUM", "CSP غير موجود", "صفحة HTML لا ترسل Content-Security-Policy.", 9)
+                    if (conn.getHeaderField("X-Frame-Options").isNullOrBlank())
+                        add("LOW", "حماية التأطير غير مرصودة", "لم يتم رصد X-Frame-Options أو CSP frame-ancestors؛ راجع خطر clickjacking حسب طبيعة الصفحة.", 3)
+                } else {
                     val directives = csp.split(";").map { it.trim() }.filter { it.isNotBlank() }
                         .associate { it.substringBefore(" ").lowercase() to it.substringAfter(" ", "").trim() }
                     if (csp.contains("'unsafe-inline'", true)) add("MEDIUM", "CSP يسمح unsafe-inline", "يسمح بتنفيذ inline scripts/styles بحسب التوجيه المتأثر؛ راجع استخدام nonce أو hash.", 5)
