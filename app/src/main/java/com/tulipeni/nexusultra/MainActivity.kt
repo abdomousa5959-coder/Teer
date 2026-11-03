@@ -138,7 +138,7 @@ class MainActivity : Activity() {
             val certs = conn.serverCertificates
             val cert = certs.firstOrNull() as? X509Certificate
             val tls = JSONObject()
-                .put("protocol", conn.sslSession?.protocol ?: "TLS session established")
+                .put("protocol", "TLS (protocol not exposed by HttpsURLConnection)")
                 .put("cipherSuite", conn.cipherSuite ?: "Unavailable")
                 .put("subject", cert?.subjectX500Principal?.name ?: "Unavailable")
                 .put("issuer", cert?.issuerX500Principal?.name ?: "Unavailable")
