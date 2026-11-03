@@ -77,8 +77,8 @@ class MainActivity : Activity() {
         val target = URL("https", host, 443, input.file.ifBlank { "/" })
         val conn = (target.openConnection() as HttpsURLConnection).apply {
             requestMethod = "GET"
-            connectTimeout = 10000
-            readTimeout = 12000
+            connectTimeout = 6000
+            readTimeout = 8000
             instanceFollowRedirects = false
             useCaches = false
             setRequestProperty("User-Agent", "NexusXUltra/4.0 (passive-security-audit)")
@@ -421,7 +421,7 @@ class MainActivity : Activity() {
         if (baseLinks != null) for (i in 0 until baseLinks.length()) queue.add(baseLinks.optString(i))
         queue.add(URL(baseUrl, "/robots.txt").toString())
         queue.add(URL(baseUrl, "/sitemap.xml").toString())
-        while (queue.isNotEmpty() && pages.length() < 11) {
+        while (queue.isNotEmpty() && pages.length() < 8) {
             val next = queue.removeFirst()
             if (!seen.add(next)) continue
             val u = try { URL(next) } catch (_: Exception) { continue }
@@ -447,7 +447,7 @@ class MainActivity : Activity() {
             .put("mode", "bounded_same_origin_get_only")
             .put("pagesVisitedIncludingStart", pages.length() + 1)
             .put("additionalPages", pages)
-            .put("maxAdditionalPages", 11)
+            .put("maxAdditionalPages", 8)
             .put("note", "تم اتباع روابط HTTPS الداخلية فقط وطلبات GET محدودة. لم يتم إرسال نماذج أو تخمين مسارات أو تنفيذ استغلال.")
         base.put("siteCrawl", crawl)
         base.put("engineVersion", "5.0")
