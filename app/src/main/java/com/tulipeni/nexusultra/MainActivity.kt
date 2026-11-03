@@ -189,6 +189,7 @@ class MainActivity : Activity() {
                     .count { !Regex("""\bsandbox\b""", RegexOption.IGNORE_CASE).containsMatchIn(it.value) }
                 val sourceMapReferences = Regex("""(?i)sourceMappingURL=|\.map(?:["'\s?]|$)""").findAll(body).count()
                 val discoveredLinks = JSONArray()
+                val robotsDisallowedPaths = JSONArray()
                 if (isHtml) {
                     Regex("""(?i)\b(?:href|src)\s*=\s*["']([^"'#]+)["']""").findAll(body).forEach { match ->
                         try {
@@ -228,8 +229,8 @@ class MainActivity : Activity() {
                     Regex("""(?im)^Disallow:\s*(/[^\s*]*)""").findAll(body).forEach { match ->
                         try {
                             val path = match.groupValues[1]
-                            if (!path.contains("..") && !path.contains("?") && discoveredLinks.length() < 80)
-                                discoveredLinks.put(URL("https", host, 443, path).toString())
+                            if (!path.contains("..") && !path.contains("?") && robotsDisallowedPaths.length() < 80)
+                                robotsDisallowedPaths.put(path)
                         } catch (_: Exception) { }
                     }
                 }
@@ -268,6 +269,7 @@ class MainActivity : Activity() {
                     .put("iframesWithoutSandbox", unsandboxedIframes)
                     .put("sourceMapReferences", sourceMapReferences)
                     .put("discoveredLinks", discoveredLinks)
+                    .put("robotsDisallowedPaths", robotsDisallowedPaths)
                     .put("httpResourceReferences", insecureRefs)
                 if (insecureRefs > 0) add("MEDIUM", "موارد HTTP داخل صفحة HTTPS", "تم رصد $insecureRefs مرجعاً يستخدم HTTP داخل عينة HTML؛ تحقق من mixed content.", 5)
                 if (insecurePasswordForms > 0) add("HIGH", "نموذج كلمة مرور يرسل إلى HTTP", "تم رصد نموذج كلمة مرور يحدد action عبر HTTP؛ راجع مسار الإرسال فوراً.", 12)
