@@ -63,21 +63,13 @@ class MainActivity : Activity() {
     }
 
     private fun scanTarget(raw: String): JSONObject {
-        val input = URL(raw.trim())
-        require(input.protocol.equals("https", true)) { "يسمح بفحص HTTPS فقط." }
-        require(input.userInfo == null) { "لا تضع بيانات دخول داخل الرابط." }
-        require(input.port == -1 || input.port == 443) { "الفحص متاح على المنفذ 443 فقط." }
-        require(input.host.isNotBlank()) { "اسم النطاق غير صالح." }
-        val host = IDN.toASCII(input.host.trimEnd('.')).lowercase()
-        require(host.length <= 253 && host.contains(".") && !host.startsWith("-")) { "أدخل اسم نطاق عام صالح." }
-        require(!host.equals("localhost", true) && !host.endsWith(".localhost", true)) { "النطاق المحلي غير مسموح." }
-
+        val target = TargetScope.normalizeHttps(raw)
+        val host = target.host
         val addresses = InetAddress.getAllByName(host)
         require(addresses.isNotEmpty() && addresses.none { isNonPublic(it) }) {
             "تم رفض النطاق لأنه يحل إلى عنوان محلي أو خاص."
         }
 
-        val target = URL("https", host, 443, input.file.ifBlank { "/" })
         val conn = (target.openConnection() as HttpsURLConnection).apply {
             requestMethod = "GET"
             connectTimeout = 6000
@@ -441,8 +433,7 @@ class MainActivity : Activity() {
             val next = queue.removeFirst()
             if (!seen.add(next)) continue
             val u = try { URL(next) } catch (_: Exception) { continue }
-            if (!u.protocol.equals("https", true) || !u.host.equals(host, true) ||
-                (u.port != -1 && u.port != 443) || u.query != null || u.userInfo != null) continue
+            if (!TargetScope.isSameOrigin(u, baseUrl)) continue
             if (blockedPaths.any { rule -> rule.isNotBlank() && u.path.startsWith(rule) }) continue
             val result = try { scanTarget(next) } catch (e: Exception) {
                 JSONObject().put("ok", false).put("target", next).put("error", e.message ?: "تعذر فحص الصفحة")
@@ -473,6 +464,8 @@ class MainActivity : Activity() {
             .put("maxAdditionalPages", config.maxPages - 1)
             .put("maxPagesIncludingStart", config.maxPages)
             .put("note", "تم اتباع روابط HTTPS الداخلية فقط وطلبات GET محدودة. لم يتم إرسال نماذج أو تخمين مسارات أو تنفيذ استغلال.")
+            .put("activeChecksEnabled", activeChecks)
+            .put("activeChecksDescription", if (activeChecks) "HEAD وOPTIONS فقط على عنوان الهدف الأساسي." else "الفحوص النشطة متوقفة.")
         base.put("siteCrawl", crawl)
         base.put("engineVersion", "6.0")
         base.put("scopeNote", "تدقيق محدود متعدد الصفحات ضمن نفس النطاق، بحد أقصى 250 صفحة ضمن نفس النطاق. الفحص الأساسي GET، والفحوص النشطة الاختيارية HEAD/OPTIONS فقط. لا ينفذ brute force أو استغلالاً أو إرسال نماذج أو تخمين مسارات.")
