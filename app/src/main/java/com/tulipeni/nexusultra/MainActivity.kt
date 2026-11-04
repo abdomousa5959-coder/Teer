@@ -15,6 +15,9 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLPeerUnverifiedException
 import kotlin.concurrent.thread
+import com.tulipeni.nexusultra.scanner.ScanConfig
+import com.tulipeni.nexusultra.scanner.SafeActiveChecks
+import com.tulipeni.nexusultra.scanner.TargetScope
 
 class MainActivity : Activity() {
     private lateinit var web: WebView
@@ -41,14 +44,14 @@ class MainActivity : Activity() {
         }
 
         @JavascriptInterface
-        fun scanSite(raw: String) {
-            runAudit(raw, true)
+        fun scanSite(raw: String, activeChecks: Boolean) {
+            runAudit(raw, true, activeChecks)
         }
 
-        private fun runAudit(raw: String, crawl: Boolean) {
+        private fun runAudit(raw: String, crawl: Boolean, activeChecks: Boolean = false) {
             thread(name = "nexus-authorized-audit") {
                 val payload = try {
-                    if (crawl) scanSiteScope(raw) else scanTarget(raw)
+                    if (crawl) scanSiteScope(raw, activeChecks) else scanTarget(raw)
                 } catch (e: Exception) {
                     JSONObject().put("ok", false).put("error", e.message ?: "تعذر تنفيذ الفحص")
                 }
@@ -420,8 +423,10 @@ class MainActivity : Activity() {
         }
     }
 
-    private fun scanSiteScope(raw: String): JSONObject {
+    private fun scanSiteScope(raw: String, activeChecks: Boolean): JSONObject {
+        val config = ScanConfig(activeChecksEnabled = activeChecks)
         val base = scanTarget(raw)
+        if (activeChecks) base.put("safeActiveChecks", SafeActiveChecks.run(URL(base.optString("target")), config.connectTimeoutMs, config.readTimeoutMs))
         val baseUrl = URL(base.optString("target"))
         val host = baseUrl.host.lowercase()
         val queue = ArrayDeque<String>()
@@ -432,7 +437,7 @@ class MainActivity : Activity() {
         queue.add(URL(baseUrl, "/sitemap.xml").toString())
         val baseLinks = base.optJSONObject("pageAnalysis")?.optJSONArray("discoveredLinks")
         if (baseLinks != null) for (i in 0 until baseLinks.length()) queue.add(baseLinks.optString(i))
-        while (queue.isNotEmpty() && pages.length() < 8) {
+        while (queue.isNotEmpty() && pages.length() < (config.maxPages - 1)) {
             val next = queue.removeFirst()
             if (!seen.add(next)) continue
             val u = try { URL(next) } catch (_: Exception) { continue }
@@ -458,18 +463,19 @@ class MainActivity : Activity() {
             val links = analysis?.optJSONArray("discoveredLinks")
             if (links != null) for (i in 0 until links.length()) {
                 val link = links.optString(i)
-                if (link.isNotBlank() && link !in seen && queue.size < 100) queue.add(link)
+                if (link.isNotBlank() && link !in seen && queue.size < config.maxDiscoveredLinks) queue.add(link)
             }
         }
         val crawl = JSONObject()
             .put("mode", "bounded_same_origin_get_only")
             .put("pagesVisitedIncludingStart", pages.length() + 1)
             .put("additionalPages", pages)
-            .put("maxAdditionalPages", 8)
+            .put("maxAdditionalPages", config.maxPages - 1)
+            .put("maxPagesIncludingStart", config.maxPages)
             .put("note", "تم اتباع روابط HTTPS الداخلية فقط وطلبات GET محدودة. لم يتم إرسال نماذج أو تخمين مسارات أو تنفيذ استغلال.")
         base.put("siteCrawl", crawl)
-        base.put("engineVersion", "5.1")
-        base.put("scopeNote", "تدقيق محدود متعدد الصفحات ضمن نفس النطاق، بحد أقصى 12 صفحة وطلبات GET فقط. لا ينفذ brute force أو استغلالاً أو إرسال نماذج أو تخمين مسارات.")
+        base.put("engineVersion", "6.0")
+        base.put("scopeNote", "تدقيق محدود متعدد الصفحات ضمن نفس النطاق، بحد أقصى 250 صفحة ضمن نفس النطاق. الفحص الأساسي GET، والفحوص النشطة الاختيارية HEAD/OPTIONS فقط. لا ينفذ brute force أو استغلالاً أو إرسال نماذج أو تخمين مسارات.")
         return base
     }
 
