@@ -9,10 +9,10 @@
 *{box-sizing:border-box}
 html{min-height:100%;background:#010402}
 body{position:relative;isolation:isolate;min-height:100vh;margin:0;background:radial-gradient(ellipse at 50% 0%,#06200e 0%,#020704 55%,#010302 100%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;padding:16px;overflow-x:hidden}
-#matrix{position:fixed;inset:0;width:100%;height:100%;z-index:-2;opacity:.23;pointer-events:none}
-body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(transparent 50%,#00ff6608 50%);background-size:100% 4px;animation:scanlines 9s linear infinite}
+#matrix{position:fixed;inset:0;width:100%;height:100%;z-index:0;opacity:.23;pointer-events:none}
+body:before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;background:linear-gradient(transparent 50%,#00ff6608 50%);background-size:100% 4px;animation:scanlines 9s linear infinite}
 @keyframes scanlines{to{background-position:0 100vh}}
-main{max-width:920px;margin:auto}
+main{position:relative;z-index:1;max-width:920px;margin:auto}
 .hero{position:relative;text-align:center;padding:22px 12px 20px;margin:0 0 16px;border:1px solid #12502b;border-radius:16px;background:linear-gradient(135deg,#04150bdb,#020805c9);box-shadow:0 0 35px #00ff6614,inset 0 0 30px #00ff6609;overflow:hidden}
 .hero:after{content:"";position:absolute;left:-30%;top:0;width:30%;height:100%;background:linear-gradient(90deg,transparent,#00ff6612,transparent);transform:skewX(-20deg);animation:shine 7s ease-in-out infinite}
 @keyframes shine{0%,65%{left:-35%}100%{left:120%}}
