@@ -4,26 +4,65 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#020704"><title>NEXUS X ULTRA</title>
 <style>
+
 :root{color-scheme:dark;--bg:#020704;--panel:#07120b;--line:#124322;--green:#00ff66;--dim:#00a83f;--text:#c7ffd8;--muted:#72a987;--red:#ff4057;--amber:#ffd34e}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at top,#06200e 0%,#020704 58%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;padding:16px}
-main{max-width:920px;margin:auto}.hero{text-align:center;padding:25px 0 20px}.hero h1{color:var(--green);font-size:29px;letter-spacing:3px;text-shadow:0 0 15px #00ff6680;margin:0}.hero p,.muted{color:var(--muted);line-height:1.7}
-.card{background:linear-gradient(145deg,#07150b,#030a05);border:1px solid var(--line);border-radius:8px;padding:18px;margin:13px 0;box-shadow:0 0 22px #00ff660d,inset 0 0 25px #00ff6605}
-h3{color:var(--green);letter-spacing:1px}input[type=url]{width:100%;padding:15px;border-radius:5px;border:1px solid #176a32;background:#010402;color:var(--green);direction:ltr;font:15px ui-monospace,monospace;margin:12px 0;outline:none}
-input:focus{box-shadow:0 0 0 2px #00ff6630}button{border:1px solid var(--green);border-radius:4px;background:#063516;color:var(--green);font:bold 14px ui-monospace,monospace;padding:14px 18px;cursor:pointer;text-shadow:0 0 8px #00ff6680}
-button:active{background:#0a5225}button:disabled{opacity:.45}.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:12px;line-height:1.7;margin:12px 0}.check input{margin:4px 0;accent-color:var(--green)}
-.meter{height:7px;background:#102516;border:1px solid #174b29;margin-top:16px}.bar{height:100%;width:0;background:var(--green);box-shadow:0 0 12px var(--green);transition:.3s}
-.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.tile{background:#020805;border:1px solid #103b20;border-radius:4px;padding:12px;min-width:0}.tile b{display:block;color:var(--dim);font-size:11px;margin-bottom:7px}.tile span{color:var(--text);overflow-wrap:anywhere;font-size:12px}
-.score{font-size:42px;font-weight:bold;color:var(--green);text-shadow:0 0 14px #00ff6680;align-self:center}.item{background:#020805;border:1px solid #103b20;border-right:3px solid var(--green);padding:12px;border-radius:3px;margin:8px 0;overflow-wrap:anywhere}.item p{color:var(--muted);font:12px/1.7 Arial,sans-serif;margin:6px 0 0}.HIGH,.CRITICAL{border-right-color:var(--red)}.MEDIUM{border-right-color:var(--amber)}.LOW{border-right-color:#8dbb9b}.INFO{border-right-color:#358bff}
+*{box-sizing:border-box}
+html{min-height:100%;background:#010402}
+body{position:relative;isolation:isolate;min-height:100vh;margin:0;background:radial-gradient(ellipse at 50% 0%,#06200e 0%,#020704 55%,#010302 100%);color:var(--text);font-family:ui-monospace,SFMono-Regular,Consolas,monospace;padding:16px;overflow-x:hidden}
+#matrix{position:fixed;inset:0;width:100%;height:100%;z-index:-2;opacity:.23;pointer-events:none}
+body:before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(transparent 50%,#00ff6608 50%);background-size:100% 4px;animation:scanlines 9s linear infinite}
+@keyframes scanlines{to{background-position:0 100vh}}
+main{max-width:920px;margin:auto}
+.hero{position:relative;text-align:center;padding:22px 12px 20px;margin:0 0 16px;border:1px solid #12502b;border-radius:16px;background:linear-gradient(135deg,#04150bdb,#020805c9);box-shadow:0 0 35px #00ff6614,inset 0 0 30px #00ff6609;overflow:hidden}
+.hero:after{content:"";position:absolute;left:-30%;top:0;width:30%;height:100%;background:linear-gradient(90deg,transparent,#00ff6612,transparent);transform:skewX(-20deg);animation:shine 7s ease-in-out infinite}
+@keyframes shine{0%,65%{left:-35%}100%{left:120%}}
+.brand{display:flex;justify-content:center;align-items:center;gap:14px;direction:ltr}
+.brandmark{width:76px;height:76px;filter:drop-shadow(0 0 12px #00ff6690);flex:none}
+.hero h1{color:#eafff0;font-size:clamp(24px,5vw,36px);letter-spacing:3px;text-shadow:0 0 15px #00ff6680;margin:0}
+.hero h1 em{font-style:normal;color:var(--green)}
+.brand-copy{text-align:left}
+.hero p,.muted{color:var(--muted);line-height:1.7}
+.hero p{margin:10px 0 0;font-size:12px;letter-spacing:1px}
+.version{display:inline-flex;align-items:center;gap:7px;border:1px solid #176a32;border-radius:999px;padding:6px 12px;margin-top:12px;color:#83ffae;background:#04170b;font-size:10px;letter-spacing:1.4px}
+.pulse{width:7px;height:7px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.4s infinite}
+@keyframes pulse{50%{opacity:.35;box-shadow:0 0 2px var(--green)}}
+.card{position:relative;background:linear-gradient(145deg,#07150beF,#030a05ee);border:1px solid var(--line);border-radius:12px;padding:18px;margin:13px 0;box-shadow:0 0 22px #00ff660d,inset 0 0 25px #00ff6605;backdrop-filter:blur(7px)}
+h3{color:var(--green);letter-spacing:1px;font-size:14px}
+input[type=url]{width:100%;padding:15px;border-radius:8px;border:1px solid #176a32;background:#010402;color:var(--green);direction:ltr;font:15px ui-monospace,monospace;margin:12px 0;outline:none}
+input:focus{box-shadow:0 0 0 2px #00ff6630,0 0 18px #00ff6620}
+button{border:1px solid var(--green);border-radius:8px;background:linear-gradient(135deg,#06451d,#031c0d);color:var(--green);font:bold 14px ui-monospace,monospace;padding:14px 18px;cursor:pointer;text-shadow:0 0 8px #00ff6680;box-shadow:0 0 16px #00ff6612;transition:transform .18s,box-shadow .18s}
+button:active{background:#0a5225;transform:scale(.99)}button:disabled{opacity:.45}
+.check{display:flex;gap:10px;align-items:flex-start;color:var(--muted);font-size:12px;line-height:1.7;margin:12px 0}.check input{margin:4px 0;accent-color:var(--green)}
+.meter{height:8px;background:#102516;border:1px solid #174b29;border-radius:99px;margin-top:16px;overflow:hidden}.bar{height:100%;width:0;background:linear-gradient(90deg,#00a83f,#80ffad);box-shadow:0 0 12px var(--green);transition:.3s;border-radius:99px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.tile{background:linear-gradient(145deg,#041109,#020805);border:1px solid #16472a;border-radius:8px;padding:13px;min-width:0}
+.tile b{display:block;color:var(--dim);font-size:11px;margin-bottom:7px}.tile span{color:var(--text);overflow-wrap:anywhere;font-size:12px}
+.score{font-size:42px;font-weight:bold;color:var(--green);text-shadow:0 0 14px #00ff6680;align-self:center}
+.item{background:#020805;border:1px solid #103b20;border-right:3px solid var(--green);padding:12px;border-radius:6px;margin:8px 0;overflow-wrap:anywhere}
+.item p{color:var(--muted);font:12px/1.7 Arial,sans-serif;margin:6px 0 0}
+.HIGH,.CRITICAL{border-right-color:var(--red)}.MEDIUM{border-right-color:var(--amber)}.LOW{border-right-color:#8dbb9b}.INFO{border-right-color:#358bff}
 .actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:14px}.actions button{flex:1;min-width:130px}.secondary{background:#07150b;border-color:#176a32;color:var(--text)}
-@media(max-width:520px){.grid{grid-template-columns:1fr}.hero h1{font-size:23px}}
+.footer{text-align:center;color:#397d52;font-size:10px;letter-spacing:2px;padding:18px 4px 8px}
+@media(max-width:520px){.grid{grid-template-columns:1fr}.brandmark{width:62px;height:62px}.hero{padding:18px 8px}.hero h1{font-size:23px}.brand{gap:9px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
 </style></head>
-<body><main>
-<header class="hero"><h1>[ NEXUS X ULTRA ]</h1><p>AUTHORIZED WEB SECURITY AUDIT // ANDROID<br>تدقيق متعدد الصفحات ضمن النطاق المصرح</p></header>
+<body><canvas id="matrix" aria-hidden="true"></canvas><main>
+<header class="hero">
+<div class="brand">
+<svg class="brandmark" viewBox="0 0 100 100" role="img" aria-label="Nexus X Ultra logo">
+<defs><linearGradient id="ng" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#baffd0"/><stop offset=".48" stop-color="#00ff66"/><stop offset="1" stop-color="#007a32"/></linearGradient></defs>
+<path d="M50 4 91 19 86 67 50 96 14 67 9 19Z" fill="#03150a" stroke="url(#ng)" stroke-width="3"/>
+<path d="M24 29 39 29 50 43 61 29 76 29 58 51 76 73 61 73 50 59 39 73 24 73 42 51Z" fill="url(#ng)" stroke="#baffd0" stroke-width="1"/>
+<path d="M50 11 56 18 50 25 44 18Z" fill="#eafff0"/>
+<path d="M19 80h62" stroke="#00ff66" stroke-width="2" opacity=".8"/>
+</svg>
+<div class="brand-copy"><h1>NEXUS <em>X</em> ULTRA</h1><p>ADVANCED WEB SECURITY AUDIT<br>تدقيق أمني احترافي متعدد الصفحات</p></div>
+</div><div class="version"><i class="pulse"></i> ANDROID EDITION&nbsp; • &nbsp;V5.2</div></header>
 <section class="card">
-<h3>&gt; TARGET_CONFIGURATION</h3>
+<h3>◈ &nbsp; TARGET CONFIGURATION</h3>
 <input id="target" type="url" placeholder="https://example.com" autocomplete="url">
 <label class="check"><input id="authorized" type="checkbox"><span>أؤكد أنني أملك النطاق أو لدي تصريح صريح بإجراء الفحص.</span></label>
-<button id="scan" style="width:100%" onclick="startScan()">[ START AUTHORIZED SITE AUDIT ]</button>
+<button id="scan" style="width:100%;padding:17px" onclick="startScan()">▶ &nbsp; START AUTHORIZED SECURITY AUDIT</button>
 <div class="meter"><div class="bar" id="bar"></div></div><p class="muted" id="status">SYSTEM READY // HTTPS ONLY // AUTHORIZED TARGETS ONLY</p>
 </section>
 <section class="card" id="results" hidden>
@@ -38,8 +77,11 @@ button:active{background:#0a5225}button:disabled{opacity:.45}.check{display:flex
 <div class="actions"><button onclick="downloadReport()">[ EXPORT JSON ]</button><button class="secondary" onclick="copyReport()">[ COPY REPORT ]</button></div>
 <p class="muted" id="disclaimer"></p>
 </section>
-</main>
+<footer class="footer">NEXUS X ULTRA &nbsp; • &nbsp; BUILT FOR DEFENSIVE SECURITY</footer></main>
 <script>
+// Lightweight Matrix-style animated background; pauses when app is backgrounded.
+(()=>{const c=document.getElementById("matrix"),ctx=c.getContext("2d");let w=0,h=0,cols=0,drops=[];const glyphs="01アイウエオカキクケコ<>/{}[]";function resize(){const d=Math.min(window.devicePixelRatio||1,1.5);w=innerWidth;h=innerHeight;c.width=Math.floor(w*d);c.height=Math.floor(h*d);ctx.setTransform(d,0,0,d,0,0);cols=Math.ceil(w/18);drops=Array.from({length:cols},()=>Math.random()*-h/18)}function draw(){if(document.hidden)return;ctx.fillStyle="rgba(1,5,3,.11)";ctx.fillRect(0,0,w,h);ctx.fillStyle="#00e85c";ctx.font="12px monospace";for(let i=0;i<drops.length;i++){const ch=glyphs[Math.floor(Math.random()*glyphs.length)];ctx.fillText(ch,i*18,drops[i]*18);if(drops[i]*18>h&&Math.random()>.975)drops[i]=0;drops[i]+=.42+Math.random()*.48}requestAnimationFrame(draw)}addEventListener("resize",resize);document.addEventListener("visibilitychange",()=>{if(!document.hidden)requestAnimationFrame(draw)});resize();requestAnimationFrame(draw)})();
+
 let report=null,scanTimer=null;const el=id=>document.getElementById(id);
 function tile(k,v){const d=document.createElement('div');d.className='tile';const b=document.createElement('b');b.textContent=k;const s=document.createElement('span');s.textContent=String(v??'Unavailable');d.append(b,s);return d}
 function item(parent,title,detail,severity='LOW'){const d=document.createElement('div');d.className='item '+severity;const b=document.createElement('b');b.textContent=title;const p=document.createElement('p');p.textContent=detail;d.append(b,p);parent.append(d)}
