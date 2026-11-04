@@ -57,11 +57,13 @@ button:active{background:#0a5225;transform:scale(.99)}button:disabled{opacity:.4
 <path d="M19 80h62" stroke="#00ff66" stroke-width="2" opacity=".8"/>
 </svg>
 <div class="brand-copy"><h1>NEXUS <em>X</em> ULTRA</h1><p>ADVANCED WEB SECURITY AUDIT<br>تدقيق أمني احترافي متعدد الصفحات</p></div>
-</div><div class="version"><i class="pulse"></i> ANDROID EDITION&nbsp; • &nbsp;V5.2</div></header>
+</div><div class="version"><i class="pulse"></i> ANDROID EDITION&nbsp; • &nbsp;V6.0</div></header>
 <section class="card">
 <h3>◈ &nbsp; TARGET CONFIGURATION</h3>
 <input id="target" type="url" placeholder="https://example.com" autocomplete="url">
 <label class="check"><input id="authorized" type="checkbox"><span>أؤكد أنني أملك النطاق أو لدي تصريح صريح بإجراء الفحص.</span></label>
+<label class="check"><input id="activeChecks" type="checkbox"><span>تفعيل الفحوص النشطة الآمنة: HEAD وOPTIONS فقط، دون إرسال بيانات أو تغيير حالة الخادم.</span></label>
+<p class="muted">حد الزحف: حتى 250 صفحة من نفس النطاق. يتم احترام robots.txt، وتظل الفحوص محدودة.</p>
 <button id="scan" style="width:100%;padding:17px" onclick="startScan()">▶ &nbsp; START AUTHORIZED SECURITY AUDIT</button>
 <div class="meter"><div class="bar" id="bar"></div></div><p class="muted" id="status">SYSTEM READY // HTTPS ONLY // AUTHORIZED TARGETS ONLY</p>
 </section>
@@ -74,7 +76,7 @@ button:active{background:#0a5225;transform:scale(.99)}button:disabled{opacity:.4
 <h3>&gt; REDIRECT_ANALYSIS</h3><div id="redirect"></div>
 <h3>&gt; AUTHORIZED_SITE_CRAWL</h3><div id="crawl"></div>
 <h3>&gt; FINDINGS</h3><div id="findings"></div>
-<div class="actions"><button onclick="downloadReport()">[ EXPORT JSON ]</button><button class="secondary" onclick="copyReport()">[ COPY REPORT ]</button></div>
+<div class="actions"><button onclick="downloadReport()">[ EXPORT JSON ]</button><button class="secondary" onclick="downloadHtmlReport()">[ EXPORT HTML ]</button><button class="secondary" onclick="printPdfReport()">[ PDF / PRINT ]</button><button class="secondary" onclick="copyReport()">[ COPY JSON ]</button></div>
 <p class="muted" id="disclaimer"></p>
 </section>
 <footer class="footer">NEXUS X ULTRA &nbsp; • &nbsp; BUILT FOR DEFENSIVE SECURITY</footer></main>
@@ -87,16 +89,34 @@ function tile(k,v){const d=document.createElement('div');d.className='tile';cons
 function item(parent,title,detail,severity='LOW'){const d=document.createElement('div');d.className='item '+severity;const b=document.createElement('b');b.textContent=title;const p=document.createElement('p');p.textContent=detail;d.append(b,p);parent.append(d)}
 function startScan(){let u;try{u=new URL(el('target').value.trim());if(u.protocol!=='https:'||u.username||u.password||u.port&&u.port!=='443')throw Error()}catch{el('status').textContent='ERROR // أدخل رابط HTTPS صحيحاً على المنفذ 443.';return}
 if(!el('authorized').checked){el('status').textContent='ACCESS DENIED // أكد وجود تصريح للفحص.';return}
-if(typeof Nexus==='undefined'||typeof Nexus.scanSite!=='function'){el('status').textContent='BRIDGE ERROR // أعد تثبيت التطبيق من APK حديث.';return}el('scan').disabled=true;clearTimeout(scanTimer);scanTimer=setTimeout(()=>{el('scan').disabled=false;el('status').textContent='TIMEOUT // لم يصل رد من محرك الفحص. أعد المحاولة أو تحقق من اتصال الإنترنت.'},180000);el('results').hidden=false;['summary','tls','headers','page','cookies','redirect','crawl','findings'].forEach(id=>el(id).replaceChildren());el('bar').style.width='30%';el('status').textContent='RUNNING // SAME-ORIGIN CRAWL + TLS + WEB SECURITY AUDIT';Nexus.scanSite(u.href)}
+if(typeof Nexus==='undefined'||typeof Nexus.scanSite!=='function'){el('status').textContent='BRIDGE ERROR // أعد تثبيت التطبيق من APK حديث.';return}el('scan').disabled=true;clearTimeout(scanTimer);scanTimer=setTimeout(()=>{el('scan').disabled=false;el('status').textContent='TIMEOUT // لم يصل رد من محرك الفحص. أعد المحاولة أو تحقق من اتصال الإنترنت.'},180000);el('results').hidden=false;['summary','tls','headers','page','cookies','redirect','crawl','findings'].forEach(id=>el(id).replaceChildren());el('bar').style.width='30%';el('status').textContent='RUNNING // SAME-ORIGIN CRAWL + TLS + WEB SECURITY AUDIT';Nexus.scanSite(u.href,el('activeChecks').checked)}
 window.receiveScan=function(raw){clearTimeout(scanTimer);let d;try{d=JSON.parse(raw)}catch(e){el('scan').disabled=false;el('status').textContent='RESPONSE ERROR // تعذر قراءة نتيجة الفحص.';return}el('scan').disabled=false;el('bar').style.width='100%';if(!d.ok){el('status').textContent='SCAN ERROR // '+d.error;return}report=d;el('status').textContent='SCAN COMPLETE // '+new Date(d.timestamp).toLocaleString();
 const s=el('summary');s.append(tile('TARGET',d.target),tile('HTTP STATUS',d.status),tile('SECURITY CONFIG SCORE',d.score+'/100'),tile('FINDING COUNTS',JSON.stringify(d.severityCounts)),tile('DNS ADDRESSES',d.dns.join(', ')),tile('SERVER DISCLOSURE',d.serverHeader));const score=document.createElement('div');score.className='score';score.textContent=d.score+'/100';s.prepend(score);
 Object.entries(d.tls).forEach(([k,v])=>item(el('tls'),k,Array.isArray(v)?v.join(', '):v));Object.entries(d.headers).forEach(([k,v])=>item(el('headers'),k,v||'Not observed in this response',v?'INFO':'LOW'));
 if(d.pageAnalysis)Object.entries(d.pageAnalysis).forEach(([k,v])=>item(el('page'),k,v));
 if(!d.cookies.length)item(el('cookies'),'No Set-Cookie headers','No cookies were observed in this response.','INFO');d.cookies.forEach(c=>item(el('cookies'),c.name,'Secure='+c.secure+' // HttpOnly='+c.httpOnly+' // SameSite='+c.sameSite,(!c.secure||!c.httpOnly||!c.sameSite)?'MEDIUM':'LOW'));
 if(d.redirect&&d.redirect!=='null')item(el('redirect'),'Redirect destination',JSON.stringify(d.redirect),'INFO');else item(el('redirect'),'No redirect destination','No Location header was observed.','INFO');
-if(d.siteCrawl){item(el('crawl'),'Pages visited',d.siteCrawl.pagesVisitedIncludingStart+' total // maximum '+(d.siteCrawl.maxAdditionalPages+1),'INFO');(d.siteCrawl.additionalPages||[]).forEach(p=>item(el('crawl'),p.target,'HTTP '+p.status+' // '+JSON.stringify(p.severityCounts||{})+(p.error?' // '+p.error:''),p.ok?'INFO':'MEDIUM'));item(el('crawl'),'Crawl policy',d.siteCrawl.note,'INFO')}else item(el('crawl'),'Single page mode','No site crawl data was returned.','INFO');
+if(d.safeActiveChecks){item(el('crawl'),'Safe active checks',JSON.stringify(d.safeActiveChecks),'INFO')}
+if(d.siteCrawl){item(el('crawl'),'Pages visited',d.siteCrawl.pagesVisitedIncludingStart+' total // maximum '+(d.siteCrawl.maxPagesIncludingStart||250),'INFO');(d.siteCrawl.additionalPages||[]).forEach(p=>item(el('crawl'),p.target,'HTTP '+p.status+' // '+JSON.stringify(p.severityCounts||{})+(p.error?' // '+p.error:''),p.ok?'INFO':'MEDIUM'));item(el('crawl'),'Crawl policy',d.siteCrawl.note,'INFO')}else item(el('crawl'),'Single page mode','No site crawl data was returned.','INFO');
 if(!d.findings.length)item(el('findings'),'No findings in tested checks','This does not prove that the site is vulnerability-free.','INFO');d.findings.forEach(f=>item(el('findings'),'['+f.severity+'] '+f.title,f.detail+' // Score deduction: '+f.deduction,f.severity));
 el('disclaimer').textContent=d.scoreDisclaimer+' '+d.scopeNote};
 function downloadReport(){if(!report)return;const blob=new Blob([JSON.stringify(report,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nexus-x-ultra-audit.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 function copyReport(){if(report&&navigator.clipboard)navigator.clipboard.writeText(JSON.stringify(report,null,2))}
+
+function downloadHtmlReport(){
+ if(!report)return;
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const rows=(report.findings||[]).map(f=>'<tr><td>'+esc(f.severity)+'</td><td>'+esc(f.title)+'</td><td>'+esc(f.detail)+'</td></tr>').join('');
+ const html='<!doctype html><meta charset="utf-8"><title>NEXUS X ULTRA Report</title><style>body{font:14px Arial;background:#07110b;color:#d7ffe3;padding:24px}h1{color:#00ff66}table{width:100%;border-collapse:collapse}td,th{border:1px solid #28613b;padding:8px;text-align:left}pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>NEXUS X ULTRA — Audit Report</h1><p>'+esc(report.target)+'</p><p>Score: '+esc(report.score)+'/100 · HTTP '+esc(report.status)+'</p><table><tr><th>Severity</th><th>Finding</th><th>Evidence</th></tr>'+rows+'</table><h2>Complete JSON</h2><pre>'+esc(JSON.stringify(report,null,2))+'</pre>';
+ const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download='nexus-x-ultra-report.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1500);
+}
+function printPdfReport(){
+ if(!report)return;
+ const esc=v=>String(v??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+ const rows=(report.findings||[]).map(f=>'<section><b>'+esc(f.severity)+' — '+esc(f.title)+'</b><p>'+esc(f.detail)+'</p></section>').join('');
+ const w=window.open('','_blank');if(!w){el('status').textContent='PDF // اسمح بفتح نافذة الطباعة ثم أعد المحاولة.';return;}
+ w.document.write('<!doctype html><meta charset="utf-8"><title>NEXUS X ULTRA Report</title><style>body{font:14px Arial;padding:24px;color:#111}h1{color:#087a36}section{border-bottom:1px solid #ccc;padding:8px 0}p{line-height:1.5}</style><h1>NEXUS X ULTRA — Security Audit</h1><p>'+esc(report.target)+'</p><p>Score: '+esc(report.score)+'/100 · HTTP '+esc(report.status)+'</p><h2>Findings</h2>'+rows+'<h2>Scope</h2><p>'+esc(report.scopeNote||'')+'</p>');
+ w.document.close();w.focus();w.print();
+}
+
 </script></body></html>
