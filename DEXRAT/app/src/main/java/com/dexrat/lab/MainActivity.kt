@@ -3,7 +3,7 @@ package com.dexrat.lab
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Bundle
+import android.os.Bundle\nimport android.os.Build
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -137,7 +137,7 @@ class MainActivity : ComponentActivity() {
             val receivers=info?.receivers?.map { it.name + if(it.exported) "  [EXPORTED]" else "" }.orEmpty()
             val providers=info?.providers?.map { it.name + if(it.exported) "  [EXPORTED]" else "" }.orEmpty()
             val cert=runCatching {
-                info?.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray()?.let {
+                (if (Build.VERSION.SDK_INT >= 28) info?.signingInfo?.apkContentsSigners?.firstOrNull()?.toByteArray() else null)?.let {
                     MessageDigest.getInstance("SHA-256").digest(it).hex()
                 } ?: "Unavailable"
             }.getOrDefault("Unavailable")
