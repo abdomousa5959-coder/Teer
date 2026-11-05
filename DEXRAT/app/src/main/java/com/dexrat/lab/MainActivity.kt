@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
             val sha=MessageDigest.getInstance("SHA-256").digest(file.readBytes()).hex()
             val entries=mutableListOf<String>(); val dex=mutableListOf<String>(); val libs=mutableListOf<String>()
             val urls=linkedSetOf<String>(); val indicators=linkedSetOf<String>()
-            val urlRegex=Regex("https?://[A-Za-z0-9._~:/?#\\[\\]@!$&'()*+,;=%-]{5,}",RegexOption.IGNORE_CASE)
+            val urlRegex=Regex("https?://[A-Za-z0-9._~:/?#\\[\\]@!\\?#\\[\\]@!$&'()*+,;=%-]{5,}",RegexOption.IGNORE_CASE)
             val signatures=listOf(
                 "DexClassLoader" to "Dynamic code loading (DexClassLoader)",
                 "PathClassLoader" to "Custom class loading (PathClassLoader)",
@@ -151,7 +151,7 @@ class MainActivity : ComponentActivity() {
             warnings.add("No code was executed, no network requests were sent, and the APK was not installed.")
             val score=(risky.size*5 + indicators.size*4 + (if(libs.isNotEmpty()) 3 else 0) + (if(urls.size>15) 5 else 0)).coerceIn(0,100)
             ApkReport(uri.lastPathSegment ?: "selected.apk",sha,entries.size,dex,libs,urls.toList().take(150),
-                info?.packageName ?: "Unknown",info?.versionName ?: "Unknown",perms,risky.let { _ -> activities },
+                info?.packageName ?: "Unknown",info?.versionName ?: "Unknown",perms,activities,
                 services,receivers,providers,indicators.toList(),cert,score,warnings)
         } finally { file.delete() }
     }
